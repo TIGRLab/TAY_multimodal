@@ -15,8 +15,7 @@ For each metric, we need to:
 
 Diffusion Metrics (NODDI - NDI, ODI, free water)
 - reading list from Christin
-- pipeline outputs exist (qsiprep and freesurfer, ask Jimmy/Salim for location) - pipelines should exist on lab computer - 
-- extraction scripts exist (Erin has version - ask Hassan/Salim for updates?)
+- extracted pipeline outputs - `/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/`
 - qc files exists but QC process not set
 
 # rsfMRI metrics
