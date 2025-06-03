@@ -16,6 +16,7 @@ For each metric, we need to:
 Diffusion Metrics (NODDI - NDI, ODI, free water)
 - reading list from Christin
 - extracted pipeline outputs - `/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/`
+- need to understand these outputs and concanate group outputs by atlas
 - qc files exists but QC process not set
 
 # rsfMRI metrics
