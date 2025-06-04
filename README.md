@@ -2,6 +2,8 @@
 
 This github project will house code related to Anisha Miah's summer project combining/comparing DWI NODDI and rsfMRI metrics from TAY data.
 
+Starte June 2025
+
 For each metric, we need to:
 
 1. Read literature and discuss to understand the metric
