@@ -21,7 +21,8 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
 - need to understand these outputs and concanate group outputs by atlas
 - qc files exists but QC process not set
 -   qc should go through qsiprep both ways:
--    
+-    https://imaging-genetics.camh.ca/documentation/#/resources/Qsiprep-QC-guide
+-    add also inspect the .html pages in the qsiprep folder that describe the workflow
 
 # rsfMRI metrics
 
