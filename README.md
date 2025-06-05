@@ -20,6 +20,8 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
 - extracted pipeline outputs - `/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/`
 - need to understand these outputs and concanate group outputs by atlas
 - qc files exists but QC process not set
+-   qc should go through qsiprep both ways:
+-    
 
 # rsfMRI metrics
 
@@ -41,11 +43,17 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
  - additonal script ontop for XCP needed to calcualte it
 
 ## Principle Gradient
- - literature (Margiles paper, Ju-Chi most recent paper)
+ - literature
+    - Margiles paper, https://pmc.ncbi.nlm.nih.gov/articles/PMC5098630/
+    - Ju-Chi most recent paper: https://pubmed.ncbi.nlm.nih.gov/39260567/
+    - More updated review: https://www.sciencedirect.com/science/article/pii/S1053811922001161?via%3Dihub
  - additional calculation in python (using BrainSpace package) to calulate it - Ju-Chi has scripts
 
 ### notes on gradients from meeting with Ju-Chi
  - Ju-Chi's gradient calculating code from paper: `/scratch/jcyu/spin_gradients/code/3.3_spins_gradiant.py`
+   - inside this script - the `calc_aligned_gradient()` function is the most important  
+ - need to re-parcellate from margiles file to get templates: `/scratch/jcyu/spin_gradients/hcp.embed.dscalar.nii`
+
 
    # July goals
 
