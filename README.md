@@ -44,6 +44,9 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
  - literature (Margiles paper, Ju-Chi most recent paper)
  - additional calculation in python (using BrainSpace package) to calulate it - Ju-Chi has scripts
 
+### notes on gradients from meeting with Ju-Chi
+ - Ju-Chi's gradient calculating code from paper: `/scratch/jcyu/spin_gradients/code/3.3_spins_gradiant.py`
+
    # July goals
 
     - Compare the NODDI to the rsfMRI metrics using stats
