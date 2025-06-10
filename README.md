@@ -32,7 +32,7 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
  - 
 ## fALFF/ALFF + reHO (will discuss with Colin)
 
- - literature: discuss wiht Colin Hawco (newest)
+ - literature: (https://pmc.ncbi.nlm.nih.gov/articles/PMC11245004/#S2)
  - extraction - all done by XCP-D (which is stage-3.sh of TIGR_BIDS)
  -   learn how to understand output to find fALFF outputs
  -   learn how to concatenate across subjects from the output
