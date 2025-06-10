@@ -38,6 +38,7 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
  -   learn how to concatenate across subjects from the output
  -   also grab coverage files to incorporate into QC
  -   understand/do visual qc of XCP and fmriprep to grab motion related QC metrics
+ -   Decision with Colin: are we going to work from the GSR XCP-outputs - and take the reHo and alff values
 
 ## Global Corr
  - literture for it (prob from Anticivic lab)
