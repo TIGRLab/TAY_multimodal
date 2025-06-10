@@ -43,6 +43,10 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
 ## Global Corr
  - literture for it (prob from Anticivic lab) - https://elifesciences.org/articles/66968
  - additonal script ontop for XCP needed to calcualte it
+ -  to calculate - grad correlation matrix
+ -   Total GC = mean of row
+ -   Positive GC = mean of all positive values in the row
+ -   Absolute GC = mean of absolute values in the row
 
 ## Principle Gradient
  - literature
