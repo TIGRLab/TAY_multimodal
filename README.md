@@ -26,7 +26,8 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
 
 # rsfMRI metrics
 
-- Literature: History of rsfMRI - good overview to start 
+- Literature: History of rsfMRI - good overview to start
+- XCP: https://pmc.ncbi.nlm.nih.gov/articles/PMC10690221/
 - understand fMRIPREP QC and rsfMRI QC metrics
  - example completed pipeline outputs `/scratch/galinejad/ScanD/SHARED_FOLDER_25/`
  - 
