@@ -41,7 +41,7 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
  -   Decision with Colin: are we going to work from the GSR XCP-outputs - and take the reHo and alff values
 
 ## Global Corr
- - literture for it (prob from Anticivic lab)
+ - literture for it (prob from Anticivic lab) - https://elifesciences.org/articles/66968
  - additonal script ontop for XCP needed to calcualte it
 
 ## Principle Gradient
