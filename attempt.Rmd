@@ -20,10 +20,12 @@ delim = "\t", escape_double = FALSE, trim_ws = TRUE)
 files_list = list.files(path ="/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/", pattern="desc-aparcaseg_model-noddi_results.tsv", recursive = TRUE, full.names=TRUE)
 ```
 ```{r}
-#want to make this into a read_delim file like earlier
-desc_aparcaseg_model_noddi_results <- files_list %>% map_dfr(~ read_delim(.x, delim = "\t", escape_double = FALSE, trim_ws = TRUE) %>% mutate(source_file=.x))
+#want to use read_delim file like earlier to concatenate
+# using anonymous function (~) for own interest
+#desc_aparcaseg_model_noddi_results = files_list %>% map_dfr(~ read_delim(.x, delim = "\t", escape_double = FALSE, trim_ws = TRUE))
 
-#desc_aparcaseg_model_noddi_results <- map_dfr(files_list, function(x) {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE) %>% mutate(source_file=x)})
+desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x) 
+    {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE)})
 ```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
