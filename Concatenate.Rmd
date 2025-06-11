@@ -25,8 +25,27 @@ files_list = list.files(path ="/archive/data/TAY/pipelines/versioned_outputs/pet
 #desc_aparcaseg_model_noddi_results = files_list %>% map_dfr(~ read_delim(.x, delim = "\t", escape_double = FALSE, trim_ws = TRUE))
 
 desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x) 
-    {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE)})
+    {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE, show_col_types=FALSE)}) #show_col_types to quiet message
 ```
+```{r}
+#concatenate all patients BOLD-alff.tsv files
+files_list_alff_xcpd = list.files(path = "/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/", pattern="Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
+
+alff_xcpd_results = map_dfr(files_list_alff_xcpd, function(x)
+  {read_delim (x, delim = "\t", show_col_types = FALSE) %>% 
+    mutate(subject = x)
+})
+```
+```{r}
+x="/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/sub-103/func/sub-103_task-matchjudgment_run-01_space-fsLR_seg-4S156Parcels_stat-alff_bold.tsv"
+
+practice_delim = read_delim("/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/sub-103/func/sub-103_task-matchjudgment_run-01_space-fsLR_seg-4S156Parcels_stat-alff_bold.tsv", delim="\t", show_col_types=FALSE) 
+
+
+#trying to figure out how to include subject name only mentioned in file path
+practice_delim %>% mutate(subject_name = str_extract(x, pattern = "sub-*"))
+```
+
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
