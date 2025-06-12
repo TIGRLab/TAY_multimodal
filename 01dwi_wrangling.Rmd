@@ -29,24 +29,14 @@ desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x)
 ```
 ```{r}
 #concatenate all patients BOLD-alff.tsv files
-files_list_alff_xcpd = list.files(path = "/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/", pattern="Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
+files_list_alff_xcpd_4S356Parcel = list.files(path = "/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/", pattern="4S356Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
 
-alff_xcpd_results = map_dfr(files_list_alff_xcpd, function(x)
-  {read_delim (x, delim = "\t", show_col_types = FALSE) %>% 
-    mutate(subject = x)
+alff_xcpd_4S356Parcel_results = map_dfr(files_list_alff_xcpd, function(x)
+  {read_delim (x, delim = "\t", show_col_types = FALSE, na=c("NA", "", "n/a")) %>% 
+    mutate(subject = str_extract(x, pattern = "sub-[^/\\\\_]+")) %>% 
+    select(subject, everything())
 })
 ```
-```{r}
-x="/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/sub-103/func/sub-103_task-matchjudgment_run-01_space-fsLR_seg-4S156Parcels_stat-alff_bold.tsv"
-
-practice_delim = read_delim("/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/sub-103/func/sub-103_task-matchjudgment_run-01_space-fsLR_seg-4S156Parcels_stat-alff_bold.tsv", delim="\t", show_col_types=FALSE) 
-
-
-#trying to figure out how to include subject name only mentioned in file path
-practice_delim %>% mutate(subject_name = str_extract(x, pattern = "sub-*"))
-```
-
-
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
