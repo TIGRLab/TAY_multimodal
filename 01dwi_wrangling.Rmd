@@ -28,15 +28,89 @@ desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x)
     {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE, show_col_types=FALSE)}) #show_col_types to quiet message
 ```
 ```{r}
-#concatenate all patients BOLD-alff.tsv files
-files_list_alff_xcpd_4S356Parcel = list.files(path = "/scratch/galinejad/ScanD/SHARED_FOLDER_25/xcp_d/0.7.3/", pattern="4S356Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
+wrangle_data = function (path,pattern #, output_path
+                         ) {
+  files_list = list.files(path = path, pattern=pattern, recursive = TRUE, full.names=TRUE)
 
-alff_xcpd_4S356Parcel_results = map_dfr(files_list_alff_xcpd, function(x)
+  results_file = map_dfr(files_list, function(x)
   {read_delim (x, delim = "\t", show_col_types = FALSE, na=c("NA", "", "n/a")) %>% 
     mutate(subject = str_extract(x, pattern = "sub-[^/\\\\_]+")) %>% 
-    select(subject, everything())
+    mutate(task = str_extract(x, pattern = "nback|rest")) %>%
+    mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
+    select(subject, task, session, everything())
+  })
+  #write_tsv(results_file, output_path)
+  #return (results_file)
+}
+```
+```{r}
+alff_xcpd_4S156Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S156Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S256Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S256Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S356Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S356Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S456Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S456Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S656Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S656Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S756Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S756Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S856Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S856Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S956Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S956Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_4S1056Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S1056Parcels_stat-alff_bold.tsv")
+
+#need to check over file names for Glasser, Gorodn, HCP,Tian, etc.
+alff_xcpd_GlasserParcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "GlasserParcels_stat-alff_bold.tsv")
+```
+```{r}
+reHo_xcpd_4S156Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","156Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S256Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","256Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S356Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","356Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S456Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","456Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S556Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","556Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S656Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","656Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S756Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","756Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S856Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","856Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S956Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","956Parcels_stat-reho_bold.tsv")
+
+reHo_xcpd_4S1056Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","1056Parcels_stat-reho_bold.tsv")
+```
+
+```{r}
+normalizePath("alff_xcpd_4S156Parcel_results.tsv")
+```
+
+
+```{r}
+#concatenate all patients BOLD-alff.tsv files
+files_list_alff_xcpd_4S156Parcel = list.files(path = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", pattern="4S156Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
+
+alff_xcpd_4S156Parcel_results = map_dfr(files_list_alff_xcpd_4S156Parcel, function(x)
+  {read_delim (x, delim = "\t", show_col_types = FALSE, na=c("NA", "", "n/a")) %>% 
+    mutate(subject = str_extract(x, pattern = "sub-[^/\\\\_]+")) %>% 
+    mutate(task = str_extract(x, pattern = "nback|rest")) %>%
+    mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
+    select(subject, task, session, everything())
 })
 ```
+
+
+
+
+
+
+
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
