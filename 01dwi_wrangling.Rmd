@@ -11,11 +11,12 @@ library(tidyverse)
 /archive/data/TAY/pipelines/versioned_outputs/pet_subsample/
 ## R Markdown
 ```{r}
+#example from Dr. Erin
 sub_CMH00000041_ses_05_desc_aparcaseg_model_noddi_results <- read_delim("/mnt/tigrlab/archive/data-2.0/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/sub-CMH00000041/ses-05/dwi/sub-CMH00000041_ses-05_desc-aparcaseg_model-noddi_results.tsv", 
 delim = "\t", escape_double = FALSE, trim_ws = TRUE)
 ```
 
-
+test try with noddi results data
 ```{r}
 files_list = list.files(path ="/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/", pattern="desc-aparcaseg_model-noddi_results.tsv", recursive = TRUE, full.names=TRUE)
 ```
@@ -27,6 +28,8 @@ files_list = list.files(path ="/archive/data/TAY/pipelines/versioned_outputs/pet
 desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x) 
     {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE, show_col_types=FALSE)}) #show_col_types to quiet message
 ```
+Function used to read through many patient files and concatenate into a dataframe
+commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
 ```{r}
 wrangle_data = function (path,pattern #, output_path
                          ) {
@@ -40,74 +43,108 @@ wrangle_data = function (path,pattern #, output_path
     select(subject, task, session, everything())
   })
   #write_tsv(results_file, output_path)
-  #return (results_file)
+}
+```
+
+concatenate three different parcellations for alff, reho, coverage and motion
+```{r}
+alff_xcpd_4S956Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S956Parcels_stat-alff_bold.tsv")
+
+alff_xcpd_HCP_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-alff_bold.tsv")
+
+alff_xcpd_Glasser_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-alff_bold.tsv")
+```
+```{r}
+reHo_xcpd_Glasser_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-reho_bold.tsv")
+
+reHo_xcpd_HCP_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-reho_bold.tsv")
+
+reHo_xcpd_Glasser_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-reho_bold.tsv")
+```
+```{r}
+coverage_xcpd_HCP_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-coverage_bold.tsv")
+
+coverage_xcpd_Glasser_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-coverage_bold.tsv")
+```
+```{r}
+motion_xcpd_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","_desc-linc_qc.tsv")
+```
+
+checking through motion and coverage files for outlier subjects
+```{r}
+#need to check through coverage files to see if parcellations ocurred correctly
+#xcpd paper given mentions if below 0.5 = bad parcellation (online mentions voxels? look into)
+#make a list of patients with coverage less than 0.5?
+coverage_Glasser_below_threshold =  filter(coverage_xcpd_Glasser_results, coverage <0.5) #435
+coverage_HCP_below_threshold = filter(coverage_xcpd_HCP_results, coverage<0.5) #0
+
+#motion QC - most important stat is probably mean_fd and mean_fd_post_censoring
+#internet says threshold for mean_fd either 0.5 or 0.2 - ask erin
+#mean_fd_post_censoring censors only high motion patients
+#check through and only make a list of patients with mean_fd_post_censoring different values
+motion_above_threshold = filter(motion_xcpd_results, mean_fd>0.5) #two results
+motion_censored = filter(motion_xcpd_results, mean_fd != mean_fd_post_censoring) #empty
+```
+
+function for global corr calculation:
+```{r}
+calculate_GC = function(dataframe){
+  #timeseries datasets are in wide format, need to change format to long
+  long_ts = dataframe %>% pivot_longer(cols = -c(subject,task,session), names_to = "Node", values_to="Value")
+
+  calculate = long_ts %>% group_by(subject,task,session, Node) %>% 
+    summarise(
+     mean_GC = mean(Value), 
+      Pos_GC = mean(subset(Value, Value>0)),
+      Abs_GC = mean(abs(Value))
+      )
 }
 ```
 ```{r}
-alff_xcpd_4S156Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S156Parcels_stat-alff_bold.tsv")
+ts_HCP_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-mean_timeseries.tsv") 
+ts_HCP_rest = filter(ts_HCP_concatenate, task =="rest")
 
-alff_xcpd_4S256Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S256Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S356Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S356Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S456Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S456Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S656Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S656Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S756Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S756Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S856Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S856Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S956Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S956Parcels_stat-alff_bold.tsv")
-
-alff_xcpd_4S1056Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S1056Parcels_stat-alff_bold.tsv")
-
-#need to check over file names for Glasser, Gorodn, HCP,Tian, etc.
-alff_xcpd_GlasserParcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "GlasserParcels_stat-alff_bold.tsv")
+GC_HCP= calculate_GC(ts_HCP_rest)
 ```
 ```{r}
-reHo_xcpd_4S156Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","156Parcels_stat-reho_bold.tsv")
+ts_Glasser_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-mean_timeseries.tsv") 
+ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest")
 
-reHo_xcpd_4S256Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","256Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S356Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","356Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S456Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","456Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S556Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","556Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S656Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","656Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S756Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","756Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S856Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","856Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S956Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","956Parcels_stat-reho_bold.tsv")
-
-reHo_xcpd_4S1056Parcel_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","1056Parcels_stat-reho_bold.tsv")
+GC_Glasser= calculate_GC(ts_Glasser_rest)
 ```
 
+ATTEMPT FOR GLOBAL CORR WITH ONE PATIENT:
+need to do Global Corr calculations
+- concatenate parcellated timeseries
+- calculate... something...
+- https://www.geeksforgeeks.org/r-language/correlation-matrix-in-r-programming/ correlation matrices
+
+path for example timeseries: /scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/sub-CMH00000023/ses-03/func/sub-CMH00000023_ses-03_task-rest_run-02_space-fsLR_seg-HCP_stat-mean_timeseries.tsv
+
+https://builtin.com/data-science/grouping-r 
 ```{r}
-normalizePath("alff_xcpd_4S156Parcel_results.tsv")
+#global corr calculator
+#hint given: to calculate - grad correlation matrix
+#Total GC = mean of row
+#Positive GC = mean of all positive values in the row
+#Absolute GC = mean of absolute values in the row
+
+#let's use an example file first with one patient, note this patient only has resting state
+ts_practice = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "sub-CMH00000023_ses-03_task-rest_run-02_space-fsLR_seg-HCP_stat-mean_timeseries.tsv") 
+
+#issue with this is that the parcellations are columns instead of rows - i'm assuming we are calcualting each parcellation instead of averaging each point in time for timeseries... what would you even analyze with each point in time...
+#mean of each column, then in new file put each column as an item in a row? so that one row has subject, task, parcel, total GC, +GC, absolute GC
+
+#change parcels so its all in one column
+long_ts = ts_practice %>% pivot_longer(cols = -c(subject,task,session), names_to = "Node", values_to="Value")
+
+calculate = long_ts %>% group_by(subject,task,session, Node) %>% 
+  summarise(
+    mean_GC = mean(Value), 
+    Pos_GC = mean(subset(Value, Value>0)),
+    Abs_GC = mean(abs(Value))
+      )
 ```
-
-
-```{r}
-#concatenate all patients BOLD-alff.tsv files
-files_list_alff_xcpd_4S156Parcel = list.files(path = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", pattern="4S156Parcels_stat-alff_bold.tsv", recursive = TRUE, full.names=TRUE)
-
-alff_xcpd_4S156Parcel_results = map_dfr(files_list_alff_xcpd_4S156Parcel, function(x)
-  {read_delim (x, delim = "\t", show_col_types = FALSE, na=c("NA", "", "n/a")) %>% 
-    mutate(subject = str_extract(x, pattern = "sub-[^/\\\\_]+")) %>% 
-    mutate(task = str_extract(x, pattern = "nback|rest")) %>%
-    mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
-    select(subject, task, session, everything())
-})
-```
-
-
-
-
 
 
 
