@@ -4,9 +4,25 @@ author: "Anisha Miah"
 date: "2025-06-04"
 output: html_document
 ---
-
+https://github.com/ggseg/ggsegGlasser
 ```{r setup}
+# Enable this universe
+#options(repos = c(
+    #ggseg = 'https://ggseg.r-universe.dev',
+    #CRAN = 'https://cloud.r-project.org'))
+
+# Install some packages
+#install.packages('ggsegGlasser')
+
+#install.packages("remotes")
+# install.packages("remotes")
+#remotes::install_github("ggseg/ggsegExtra")
+
 library(tidyverse)
+library(ggseg)
+library(ggplot2)
+library(ggsegGlasser)
+library(ggsegSchaefer)
 ```
 /archive/data/TAY/pipelines/versioned_outputs/pet_subsample/
 ## R Markdown
@@ -48,23 +64,26 @@ wrangle_data = function (path,pattern #, output_path
 
 concatenate three different parcellations for alff, reho, coverage and motion
 ```{r}
-alff_xcpd_4S956Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S956Parcels_stat-alff_bold.tsv")
+alff_xcpd_4S156Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S156Parcels_stat-alff_bold.tsv")
 
 alff_xcpd_HCP_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-alff_bold.tsv")
 
 alff_xcpd_Glasser_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-alff_bold.tsv")
 ```
 ```{r}
-reHo_xcpd_Glasser_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-reho_bold.tsv")
+reHo_xcpd_4S156Parcels_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","4S156Parcels_stat-reho_bold.tsv")
 
 reHo_xcpd_HCP_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-reho_bold.tsv")
 
 reHo_xcpd_Glasser_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-reho_bold.tsv")
 ```
+
 ```{r}
 coverage_xcpd_HCP_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-coverage_bold.tsv")
 
 coverage_xcpd_Glasser_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-coverage_bold.tsv")
+
+coverage_xcpd_4S156_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","4S156Parcels_stat-coverage_bold.tsv")
 ```
 ```{r}
 motion_xcpd_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","_desc-linc_qc.tsv")
@@ -72,18 +91,13 @@ motion_xcpd_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/deri
 
 checking through motion and coverage files for outlier subjects
 ```{r}
-#need to check through coverage files to see if parcellations ocurred correctly
-#xcpd paper given mentions if below 0.5 = bad parcellation (online mentions voxels? look into)
-#make a list of patients with coverage less than 0.5?
+#xcpd paper given mentions if coverage below 0.5 = bad parcellation 
 coverage_Glasser_below_threshold =  filter(coverage_xcpd_Glasser_results, coverage <0.5) #435
 coverage_HCP_below_threshold = filter(coverage_xcpd_HCP_results, coverage<0.5) #0
+coverage_4S156_belowthreshold = filter(coverage_xcpd_4S156_results, coverage<0.5) #4 observations, same subject 846 for Cerebellar_Region4 
 
-#motion QC - most important stat is probably mean_fd and mean_fd_post_censoring
-#internet says threshold for mean_fd either 0.5 or 0.2 - ask erin
-#mean_fd_post_censoring censors only high motion patients
-#check through and only make a list of patients with mean_fd_post_censoring different values
-motion_above_threshold = filter(motion_xcpd_results, mean_fd>0.5) #two results
-motion_censored = filter(motion_xcpd_results, mean_fd != mean_fd_post_censoring) #empty
+#motion QC - thresholding if higher than 0.5
+motion_above_threshold = filter(motion_xcpd_results, mean_fd>0.5) #2 - sub 148 for two scans
 ```
 
 function for global corr calculation:
@@ -113,11 +127,39 @@ ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest")
 GC_Glasser= calculate_GC(ts_Glasser_rest)
 ```
 
+making a brain map
+```{r}
+#randomly select ten subjects and make brainmap of it (will need ggseg)
+glasser_df = as_tibble(glasser)
+```
+```{r}
+glasser_df
+```
+
+
+```{r}
+ten_sub = sample(unique(GC_Glasser$subject), 10)
+GC_plot = filter(GC_Glasser, subject %in% ten_sub) %>% rename(label = Node) %>%    mutate(subject = as.factor(subject)) %>% 
+  mutate(label = str_replace(label, "Left", "lh_L") %>% 
+           str_replace("Right", "rh_R"))
+```
+
+```{r}
+
+#to note: glasser label doesn't have lh_L_10pp 
+#for loop going through ten subjects doesnt make a pretty picture :( only makes awful ugly tibbles that all say lh_L_10pp doesn't exist
+#for (i in 1:3){
+ggseg(.data = GC_plot %>% filter(subject == ten_sub[1]),
+      atlas = glasser,
+      mapping = aes(fill=mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Patient", ten_sub[1]))
+#}
+```
 ATTEMPT FOR GLOBAL CORR WITH ONE PATIENT:
 need to do Global Corr calculations
 - concatenate parcellated timeseries
-- calculate... something...
-- https://www.geeksforgeeks.org/r-language/correlation-matrix-in-r-programming/ correlation matrices
 
 path for example timeseries: /scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/sub-CMH00000023/ses-03/func/sub-CMH00000023_ses-03_task-rest_run-02_space-fsLR_seg-HCP_stat-mean_timeseries.tsv
 
