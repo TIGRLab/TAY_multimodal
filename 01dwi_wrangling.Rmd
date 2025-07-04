@@ -7,12 +7,19 @@ output: html_document
 https://github.com/ggseg/ggsegGlasser
 ```{r setup}
 # Enable this universe
-#options(repos = c(
-    #ggseg = 'https://ggseg.r-universe.dev',
-    #CRAN = 'https://cloud.r-project.org'))
+options(repos = c(
+    ggseg = 'https://ggseg.r-universe.dev',
+    CRAN = 'https://cloud.r-project.org'))
+# Install some packages
+install.packages('ggsegGlasser')
+
+# Enable this universe
+options(repos = c(
+    ggseg = 'https://ggseg.r-universe.dev',
+    CRAN = 'https://cloud.r-project.org'))
 
 # Install some packages
-#install.packages('ggsegGlasser')
+install.packages('ggsegSchaefer')
 
 #install.packages("remotes")
 # install.packages("remotes")
@@ -46,6 +53,7 @@ desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x)
 ```
 Function used to read through many patient files and concatenate into a dataframe
 commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
+
 ```{r}
 wrangle_data = function (path,pattern #, output_path
                          ) {
@@ -58,6 +66,8 @@ wrangle_data = function (path,pattern #, output_path
     mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
     select(subject, task, session, everything())
   })
+  #comment out filter if both rest and nback wanted
+  #filter(results_file, task=="rest")
   #write_tsv(results_file, output_path)
 }
 ```
@@ -102,11 +112,19 @@ motion_above_threshold = filter(motion_xcpd_results, mean_fd>0.5) #2 - sub 148 f
 
 function for global corr calculation:
 ```{r}
-calculate_GC = function(dataframe){
+calculate_GC = function(dataframe, string){
   #timeseries datasets are in wide format, need to change format to long
   long_ts = dataframe %>% pivot_longer(cols = -c(subject,task,session), names_to = "Node", values_to="Value")
+  
+  if(string == "individual"){
+    group = long_ts %>% group_by(subject, task, session, Node)
+  } else if (string =="group"){
+    group = long_ts%>% group_by(Node) 
+  } else{
+    print("Please specify group or individual analysis")
+  }
 
-  calculate = long_ts %>% group_by(subject,task,session, Node) %>% 
+  calculate =  group %>% 
     summarise(
      mean_GC = mean(Value), 
       Pos_GC = mean(subset(Value, Value>0)),
@@ -118,45 +136,66 @@ calculate_GC = function(dataframe){
 ts_HCP_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-mean_timeseries.tsv") 
 ts_HCP_rest = filter(ts_HCP_concatenate, task =="rest")
 
-GC_HCP= calculate_GC(ts_HCP_rest)
+GC_HCP= calculate_GC(ts_HCP_rest) 
 ```
 ```{r}
-ts_Glasser_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-mean_timeseries.tsv") 
-ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest")
-
-GC_Glasser= calculate_GC(ts_Glasser_rest)
-```
-
-making a brain map
-```{r}
-#randomly select ten subjects and make brainmap of it (will need ggseg)
 glasser_df = as_tibble(glasser)
+ts_Glasser_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-mean_timeseries.tsv") 
+ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest") 
 ```
 ```{r}
-glasser_df
-```
+#randomly select ten subjects and make brai nmap of it (will need ggseg)
+ten_sub = sample(unique(ts_Glasser_rest$subject), 10)
+GC_Glasser_rand_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
+  filter(subject %in% ten_sub) %>%
+  rename(label = Node) %>%    
+  mutate(subject = as.factor(subject)) %>% 
+  mutate(label = str_replace(label, "Left", "lh_L") %>% 
+           str_replace("Right", "rh_R"))
 
-
-```{r}
-ten_sub = sample(unique(GC_Glasser$subject), 10)
-GC_plot = filter(GC_Glasser, subject %in% ten_sub) %>% rename(label = Node) %>%    mutate(subject = as.factor(subject)) %>% 
+GC_Glasser_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
+  filter(subject %in% ten_sub) %>%
+  rename(label = Node) %>%    
+  mutate(subject = as.factor(subject)) %>% 
+  mutate(label = str_replace(label, "Left", "lh_L") %>% 
+           str_replace("Right", "rh_R"))
+GC_Glasser_group = calculate_GC(ts_Glasser_rest, "group") %>% 
+  rename(label = Node) %>%    
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
            str_replace("Right", "rh_R"))
 ```
 
+making individual brain map for Glasser for ten subjects
 ```{r}
-
-#to note: glasser label doesn't have lh_L_10pp 
-#for loop going through ten subjects doesnt make a pretty picture :( only makes awful ugly tibbles that all say lh_L_10pp doesn't exist
-#for (i in 1:3){
-ggseg(.data = GC_plot %>% filter(subject == ten_sub[1]),
+#to note: glasser label doesn't have lh_L_10pp, so a tibble pops up that shows it's empty 
+ggseg(.data = GC_Glasser_rand_individual,
+      atlas = glasser,
+      mapping = aes(fill=mean_GC)) +
+  facet_wrap(~subject) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Subject", ~subject))
+```
+```{r}
+ggseg(.data = GC_Glasser_group,
       atlas = glasser,
       mapping = aes(fill=mean_GC)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("Mean GSCorr for Patient", ten_sub[1]))
-#}
+  labs(title = paste("Mean GSCorr for Group"))
 ```
+```{r}
+GC_Glasser_wide = subset(GC_Glasser_individual, select=c(subject, label, mean_GC)) %>% pivot_wider(names_from = subject, values_from = mean_GC)
+```
+```{r}
+GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-label), use = "pairwise.complete.obs")
+
+install.packages("corrplot")
+library(corrplot)
+
+```
+
+
 ATTEMPT FOR GLOBAL CORR WITH ONE PATIENT:
 need to do Global Corr calculations
 - concatenate parcellated timeseries
