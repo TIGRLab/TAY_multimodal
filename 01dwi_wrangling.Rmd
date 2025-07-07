@@ -31,29 +31,9 @@ library(ggplot2)
 library(ggsegGlasser)
 library(ggsegSchaefer)
 ```
-/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/
-## R Markdown
-```{r}
-#example from Dr. Erin
-sub_CMH00000041_ses_05_desc_aparcaseg_model_noddi_results <- read_delim("/mnt/tigrlab/archive/data-2.0/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/sub-CMH00000041/ses-05/dwi/sub-CMH00000041_ses-05_desc-aparcaseg_model-noddi_results.tsv", 
-delim = "\t", escape_double = FALSE, trim_ws = TRUE)
-```
 
-test try with noddi results data
-```{r}
-files_list = list.files(path ="/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/", pattern="desc-aparcaseg_model-noddi_results.tsv", recursive = TRUE, full.names=TRUE)
-```
-```{r}
-#want to use read_delim file like earlier to concatenate
-# using anonymous function (~) for own interest
-#desc_aparcaseg_model_noddi_results = files_list %>% map_dfr(~ read_delim(.x, delim = "\t", escape_double = FALSE, trim_ws = TRUE))
-
-desc_aparcaseg_model_noddi_results = map_dfr(files_list, function(x) 
-    {read_delim (x, delim = "\t", escape_double = FALSE, trim_ws = TRUE, show_col_types=FALSE)}) #show_col_types to quiet message
-```
 Function used to read through many patient files and concatenate into a dataframe
 commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
-
 ```{r}
 wrangle_data = function (path,pattern #, output_path
                          ) {
@@ -70,33 +50,36 @@ wrangle_data = function (path,pattern #, output_path
   #filter(results_file, task=="rest")
   #write_tsv(results_file, output_path)
 }
+
+path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
+path_noddi = "/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/"
 ```
 
 concatenate three different parcellations for alff, reho, coverage and motion
 ```{r}
-alff_xcpd_4S156Parcel_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "4S156Parcels_stat-alff_bold.tsv")
+alff_xcpd_4S156Parcel_results=wrangle_data(path_xcpd, "4S156Parcels_stat-alff_bold.tsv")
 
-alff_xcpd_HCP_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-alff_bold.tsv")
+alff_xcpd_HCP_results=wrangle_data(path_xcpd, "HCP_stat-alff_bold.tsv")
 
-alff_xcpd_Glasser_results=wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-alff_bold.tsv")
+alff_xcpd_Glasser_results=wrangle_data(path_xcpd, "Glasser_stat-alff_bold.tsv")
 ```
 ```{r}
-reHo_xcpd_4S156Parcels_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","4S156Parcels_stat-reho_bold.tsv")
+reHo_xcpd_4S156Parcels_results = wrangle_data(path_xcpd,"4S156Parcels_stat-reho_bold.tsv")
 
-reHo_xcpd_HCP_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-reho_bold.tsv")
+reHo_xcpd_HCP_results = wrangle_data(path_xcpd,"HCP_stat-reho_bold.tsv")
 
-reHo_xcpd_Glasser_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-reho_bold.tsv")
+reHo_xcpd_Glasser_results = wrangle_data(path_xcpd,"Glasser_stat-reho_bold.tsv")
 ```
 
 ```{r}
-coverage_xcpd_HCP_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","HCP_stat-coverage_bold.tsv")
+coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
 
-coverage_xcpd_Glasser_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","Glasser_stat-coverage_bold.tsv")
+coverage_xcpd_Glasser_results= wrangle_data(path_xcpd,"Glasser_stat-coverage_bold.tsv")
 
-coverage_xcpd_4S156_results= wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","4S156Parcels_stat-coverage_bold.tsv")
+coverage_xcpd_4S156_results= wrangle_data(path_xcpd,"4S156Parcels_stat-coverage_bold.tsv")
 ```
 ```{r}
-motion_xcpd_results = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/","_desc-linc_qc.tsv")
+motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv")
 ```
 
 checking through motion and coverage files for outlier subjects
@@ -133,14 +116,42 @@ calculate_GC = function(dataframe, string){
 }
 ```
 ```{r}
-ts_HCP_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "HCP_stat-mean_timeseries.tsv") 
+ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv") 
 ts_HCP_rest = filter(ts_HCP_concatenate, task =="rest")
 
 GC_HCP= calculate_GC(ts_HCP_rest) 
 ```
+Schaefer brainmap of mean gscorr
+```{r}
+ts_4S156Parcels_concatenate = wrangle_data(path_xcpd, "4S156Parcels_stat-mean_timeseries.tsv") 
+ts_4S156Parcels_rest = filter(ts_4S156Parcels_concatenate, task =="rest")
+```
+
+```{r}
+GC_4S156Parcels_group = calculate_GC(ts_4S156Parcels_rest, "group") %>% 
+  rename(region = Node) #%>%    
+ # mutate(region = str_replace(region, "Left", "lh_L") %>% 
+          # str_replace("Right", "rh_R"))
+
+```
+```{r}
+schaefer_df = as_tibble(schaefer17_100)
+```
+```{r}
+#i'm confused on which scahefer atlas to use
+ggseg(.data = GC_4S156Parcels_group,
+      atlas = schaefer17_100,
+      mapping = aes(fill=mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Group"))
+```
+
+
+Glasser brainmap of mean gscorr
 ```{r}
 glasser_df = as_tibble(glasser)
-ts_Glasser_concatenate = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "Glasser_stat-mean_timeseries.tsv") 
+ts_Glasser_concatenate = wrangle_data(path_xcpd, "Glasser_stat-mean_timeseries.tsv") 
 ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest") 
 ```
 ```{r}
@@ -154,7 +165,6 @@ GC_Glasser_rand_individual= calculate_GC(ts_Glasser_rest, "individual") %>%
            str_replace("Right", "rh_R"))
 
 GC_Glasser_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
-  filter(subject %in% ten_sub) %>%
   rename(label = Node) %>%    
   mutate(subject = as.factor(subject)) %>% 
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
@@ -185,48 +195,34 @@ ggseg(.data = GC_Glasser_group,
   labs(title = paste("Mean GSCorr for Group"))
 ```
 ```{r}
+#making a correlation matrix to QC 
+install.packages("ggcorrplot")
+library(ggcorrplot)
+```
+```{r}
 GC_Glasser_wide = subset(GC_Glasser_individual, select=c(subject, label, mean_GC)) %>% pivot_wider(names_from = subject, values_from = mean_GC)
-```
-```{r}
 GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-label), use = "pairwise.complete.obs")
-
-install.packages("corrplot")
-library(corrplot)
-
 ```
-
-
-ATTEMPT FOR GLOBAL CORR WITH ONE PATIENT:
-need to do Global Corr calculations
-- concatenate parcellated timeseries
-
-path for example timeseries: /scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/sub-CMH00000023/ses-03/func/sub-CMH00000023_ses-03_task-rest_run-02_space-fsLR_seg-HCP_stat-mean_timeseries.tsv
-
-https://builtin.com/data-science/grouping-r 
 ```{r}
-#global corr calculator
-#hint given: to calculate - grad correlation matrix
-#Total GC = mean of row
-#Positive GC = mean of all positive values in the row
-#Absolute GC = mean of absolute values in the row
+ggcorrplot(GC_Glasser_matrix, hc.order = TRUE, type = "lower") +
+  theme (axis.text.x = element_text(angle= 90, vjust=1, hjust = 1, size=8),
+         axis.text.y = element_text(size=8))
 
-#let's use an example file first with one patient, note this patient only has resting state
-ts_practice = wrangle_data("/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/", "sub-CMH00000023_ses-03_task-rest_run-02_space-fsLR_seg-HCP_stat-mean_timeseries.tsv") 
-
-#issue with this is that the parcellations are columns instead of rows - i'm assuming we are calcualting each parcellation instead of averaging each point in time for timeseries... what would you even analyze with each point in time...
-#mean of each column, then in new file put each column as an item in a row? so that one row has subject, task, parcel, total GC, +GC, absolute GC
-
-#change parcels so its all in one column
-long_ts = ts_practice %>% pivot_longer(cols = -c(subject,task,session), names_to = "Node", values_to="Value")
-
-calculate = long_ts %>% group_by(subject,task,session, Node) %>% 
-  summarise(
-    mean_GC = mean(Value), 
-    Pos_GC = mean(subset(Value, Value>0)),
-    Abs_GC = mean(abs(Value))
-      )
+# a lot of white space visible. should i filter for sessions? it's already currently filtered by task
 ```
+---------------------------------------------------------------
 
+QSIPREP 
+
+---------------------------------------------------------------
+```{r}
+noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task))
+noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task))
+```
+```{r}
+#look at coverage files
+noddi_Glasser_coverage = filter(noddi_results, coverage<0.5)
+```
 
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
