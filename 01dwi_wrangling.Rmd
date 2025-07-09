@@ -17,13 +17,12 @@ install.packages('ggsegGlasser')
 options(repos = c(
     ggseg = 'https://ggseg.r-universe.dev',
     CRAN = 'https://cloud.r-project.org'))
-
 # Install some packages
 install.packages('ggsegSchaefer')
 
-#install.packages("remotes")
-# install.packages("remotes")
-#remotes::install_github("ggseg/ggsegExtra")
+#making a correlation matrix
+install.packages("ggcorrplot")
+library(ggcorrplot)
 
 library(tidyverse)
 library(ggseg)
@@ -44,9 +43,10 @@ wrangle_data = function (path,pattern #, output_path
     mutate(subject = str_extract(x, pattern = "sub-[^/\\\\_]+")) %>% 
     mutate(task = str_extract(x, pattern = "nback|rest")) %>%
     mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
-    select(subject, task, session, everything())
+    mutate (run = str_extract(x, pattern = "run-0\\d")) %>%
+    select(subject, task, session, run, everything()) 
   })
-  #comment out filter if both rest and nback wanted
+  #comment out filter if both rest and nback wanted.. issue noddi results do not contain either so filtering = empty noddi file
   #filter(results_file, task=="rest")
   #write_tsv(results_file, output_path)
 }
@@ -54,34 +54,40 @@ wrangle_data = function (path,pattern #, output_path
 path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
 path_noddi = "/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/"
 ```
+path_age = "/scratch/jwong/tay_pet_age.csv"
 
 concatenate three different parcellations for alff, reho, coverage and motion
 ```{r}
-alff_xcpd_4S156Parcel_results=wrangle_data(path_xcpd, "4S156Parcels_stat-alff_bold.tsv")
+alff_xcpd_4S156Parcels_results=wrangle_data(path_xcpd, "4S156Parcels_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
 
-alff_xcpd_HCP_results=wrangle_data(path_xcpd, "HCP_stat-alff_bold.tsv")
+alff_xcpd_HCP_results=wrangle_data(path_xcpd, "HCP_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
 
-alff_xcpd_Glasser_results=wrangle_data(path_xcpd, "Glasser_stat-alff_bold.tsv")
+alff_xcpd_Glasser_results=wrangle_data(path_xcpd, "Glasser_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
 ```
 ```{r}
-reHo_xcpd_4S156Parcels_results = wrangle_data(path_xcpd,"4S156Parcels_stat-reho_bold.tsv")
+reHo_xcpd_4S156Parcels_results = wrangle_data(path_xcpd,"4S156Parcels_stat-reho_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
 
-reHo_xcpd_HCP_results = wrangle_data(path_xcpd,"HCP_stat-reho_bold.tsv")
+reHo_xcpd_HCP_results = wrangle_data(path_xcpd,"HCP_stat-reho_bold.tsv")%>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
 
-reHo_xcpd_Glasser_results = wrangle_data(path_xcpd,"Glasser_stat-reho_bold.tsv")
-```
-
-```{r}
-coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
-
-coverage_xcpd_Glasser_results= wrangle_data(path_xcpd,"Glasser_stat-coverage_bold.tsv")
-
-coverage_xcpd_4S156_results= wrangle_data(path_xcpd,"4S156Parcels_stat-coverage_bold.tsv")
+reHo_xcpd_Glasser_results = wrangle_data(path_xcpd,"Glasser_stat-reho_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
 ```
 ```{r}
-motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv")
+#coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
+
+coverage_xcpd_Glasser_results= wrangle_data(path_xcpd,"Glasser_stat-coverage_bold.tsv") %>%
+  mutate(Node = str_replace(Node, "L_", "Left_") %>% 
+           str_replace("R_", "Right_") %>%
+           str_replace("_ROI", "")
+        ) %>%
+  filter(task=="rest")
+
+coverage_xcpd_4S156Parcels_results= wrangle_data(path_xcpd,"4S156Parcels_stat-coverage_bold.tsv") %>% filter(task=="rest")
+```
+```{r}
+motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv") %>% subset(select=c(subject,task,session,run,mean_fd)) %>% filter(task=="rest")
 ```
 
+can likely delete this section.
 checking through motion and coverage files for outlier subjects
 ```{r}
 #xcpd paper given mentions if coverage below 0.5 = bad parcellation 
@@ -97,10 +103,10 @@ function for global corr calculation:
 ```{r}
 calculate_GC = function(dataframe, string){
   #timeseries datasets are in wide format, need to change format to long
-  long_ts = dataframe %>% pivot_longer(cols = -c(subject,task,session), names_to = "Node", values_to="Value")
+  long_ts = dataframe %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="Value")
   
   if(string == "individual"){
-    group = long_ts %>% group_by(subject, task, session, Node)
+    group = long_ts %>% group_by(subject, task, session, run, Node)
   } else if (string =="group"){
     group = long_ts%>% group_by(Node) 
   } else{
@@ -118,13 +124,13 @@ calculate_GC = function(dataframe, string){
 ```{r}
 ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv") 
 ts_HCP_rest = filter(ts_HCP_concatenate, task =="rest")
-
-GC_HCP= calculate_GC(ts_HCP_rest) 
+GC_HCP_individual = calculate_GC(ts_HCP_rest, "individual") %>% filter(task=="rest")
 ```
 Schaefer brainmap of mean gscorr
 ```{r}
 ts_4S156Parcels_concatenate = wrangle_data(path_xcpd, "4S156Parcels_stat-mean_timeseries.tsv") 
 ts_4S156Parcels_rest = filter(ts_4S156Parcels_concatenate, task =="rest")
+GC_4S156Parcels_individual = calculate_GC(ts_4S156Parcels_rest, "individual") %>% filter(task=="rest")
 ```
 
 ```{r}
@@ -147,15 +153,15 @@ ggseg(.data = GC_4S156Parcels_group,
   labs(title = paste("Mean GSCorr for Group"))
 ```
 
-
 Glasser brainmap of mean gscorr
 ```{r}
-glasser_df = as_tibble(glasser)
+#glasser_df = as_tibble(glasser)
 ts_Glasser_concatenate = wrangle_data(path_xcpd, "Glasser_stat-mean_timeseries.tsv") 
 ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest") 
+GC_Glasser_individual = calculate_GC(ts_Glasser_rest, "individual") %>% filter(task=="rest")
 ```
 ```{r}
-#randomly select ten subjects and make brai nmap of it (will need ggseg)
+#randomly select ten subjects and make brainmap of it (will need ggseg)
 ten_sub = sample(unique(ts_Glasser_rest$subject), 10)
 GC_Glasser_rand_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
   filter(subject %in% ten_sub) %>%
@@ -195,11 +201,6 @@ ggseg(.data = GC_Glasser_group,
   labs(title = paste("Mean GSCorr for Group"))
 ```
 ```{r}
-#making a correlation matrix to QC 
-install.packages("ggcorrplot")
-library(ggcorrplot)
-```
-```{r}
 GC_Glasser_wide = subset(GC_Glasser_individual, select=c(subject, label, mean_GC)) %>% pivot_wider(names_from = subject, values_from = mean_GC)
 GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-label), use = "pairwise.complete.obs")
 ```
@@ -207,21 +208,52 @@ GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-label), use = "pairwise.comp
 ggcorrplot(GC_Glasser_matrix, hc.order = TRUE, type = "lower") +
   theme (axis.text.x = element_text(angle= 90, vjust=1, hjust = 1, size=8),
          axis.text.y = element_text(size=8))
-
-# a lot of white space visible. should i filter for sessions? it's already currently filtered by task
 ```
+
+concatenating all fmriprep into one dataframe for easier filtering 
+```{r}
+df_HCP = merge(alff_xcpd_HCP_results, reHo_xcpd_HCP_results, by= c("subject", "task", "session", "run", "Node"))
+df_HCP = merge(df_HCP, GC_HCP_individual, by= c("subject", "task", "session", "run", "Node"))
+df_HCP = merge(df_HCP, coverage_xcpd_HCP_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
+df_HCP = merge(df_HCP, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
+```
+```{r}
+df_Glasser = merge(alff_xcpd_Glasser_results, reHo_xcpd_Glasser_results, by= c("subject", "task", "session", "run", "Node"))
+df_Glasser = merge(df_Glasser, GC_Glasser_individual, by= c("subject", "task", "session", "run", "Node"))
+df_Glasser = merge(df_Glasser, coverage_xcpd_Glasser_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
+df_Glasser = merge(df_Glasser, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
+
+```
+```{r}
+df_4S156Parcels = merge(alff_xcpd_4S156Parcels_results, reHo_xcpd_4S156Parcels_results, by= c("subject", "task", "session", "run", "Node"))
+df_4S156Parcels = merge(df_4S156Parcels, GC_4S156Parcels_individual, by= c("subject", "task", "session", "run", "Node"))
+df_4S156Parcels = merge(df_4S156Parcels, coverage_xcpd_4S156Parcels_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
+df_4S156Parcels = merge(df_4S156Parcels, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
+```
+
 ---------------------------------------------------------------
 
 QSIPREP 
 
 ---------------------------------------------------------------
 ```{r}
-noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task))
-noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task))
+#grab all noddi result data, maybe filter also for low coverage?
+noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>% 
+   mutate(name = str_replace(name, "L_", "Left_") %>% 
+           str_replace("R_", "Right_") %>%
+           str_replace("_ROI", "")
+        )
+noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run))
+noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv") %>% subset(select = -c(task,run))
 ```
 ```{r}
 #look at coverage files
-noddi_Glasser_coverage = filter(noddi_results, coverage<0.5)
+noddi_Glasser_coverage = filter(noddi_Glasser_results, coverage<0.5)
+```
+
+compare noddi with rsfmri
+```{r}
+
 ```
 
 
