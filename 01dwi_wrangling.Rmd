@@ -31,7 +31,7 @@ library(ggsegGlasser)
 library(ggsegSchaefer)
 ```
 
-Function used to read through many patient files and concatenate into a dataframe
+Function used to read through many subject files and concatenate into a dataframe
 commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
 ```{r}
 wrangle_data = function (path,pattern #, output_path
@@ -54,6 +54,12 @@ wrangle_data = function (path,pattern #, output_path
 path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
 path_noddi = "/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/"
 ```
+```{r}
+age_df = read_delim("/scratch/jwong/tay_pet_age.csv", delim = ",", show_col_types = FALSE) %>% 
+  rename(subject=subject_id) %>%
+  mutate(subject = str_replace(subject, "TAY01_CMH_", "sub-CMH"))
+```
+
 path_age = "/scratch/jwong/tay_pet_age.csv"
 
 concatenate three different parcellations for alff, reho, coverage and motion
@@ -72,7 +78,7 @@ reHo_xcpd_HCP_results = wrangle_data(path_xcpd,"HCP_stat-reho_bold.tsv")%>% pivo
 reHo_xcpd_Glasser_results = wrangle_data(path_xcpd,"Glasser_stat-reho_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
 ```
 ```{r}
-#coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
+coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
 
 coverage_xcpd_Glasser_results= wrangle_data(path_xcpd,"Glasser_stat-coverage_bold.tsv") %>%
   mutate(Node = str_replace(Node, "L_", "Left_") %>% 
@@ -123,21 +129,19 @@ calculate_GC = function(dataframe, string){
 ```
 ```{r}
 ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv") 
-ts_HCP_rest = filter(ts_HCP_concatenate, task =="rest")
-GC_HCP_individual = calculate_GC(ts_HCP_rest, "individual") %>% filter(task=="rest")
+ts_HCP_concatenate = filter(ts_HCP_concatenate, task =="rest")
+GC_HCP_individual = calculate_GC(ts_HCP_concatenate, "individual") %>% filter(task=="rest")
 ```
 Schaefer brainmap of mean gscorr
 ```{r}
 ts_4S156Parcels_concatenate = wrangle_data(path_xcpd, "4S156Parcels_stat-mean_timeseries.tsv") 
-ts_4S156Parcels_rest = filter(ts_4S156Parcels_concatenate, task =="rest")
-GC_4S156Parcels_individual = calculate_GC(ts_4S156Parcels_rest, "individual") %>% filter(task=="rest")
+ts_4S156Parcels_concatenate = filter(ts_4S156Parcels_concatenate, task =="rest")
+GC_4S156Parcels_individual = calculate_GC(ts_4S156Parcels_concatenate, "individual") %>% filter(task=="rest")
 ```
 
 ```{r}
-GC_4S156Parcels_group = calculate_GC(ts_4S156Parcels_rest, "group") %>% 
-  rename(region = Node) #%>%    
- # mutate(region = str_replace(region, "Left", "lh_L") %>% 
-          # str_replace("Right", "rh_R"))
+GC_4S156Parcels_group = calculate_GC(ts_4S156Parcels_concatenate, "group") %>% 
+  rename(region = Node) 
 
 ```
 ```{r}
@@ -157,8 +161,8 @@ Glasser brainmap of mean gscorr
 ```{r}
 #glasser_df = as_tibble(glasser)
 ts_Glasser_concatenate = wrangle_data(path_xcpd, "Glasser_stat-mean_timeseries.tsv") 
-ts_Glasser_rest = filter(ts_Glasser_concatenate, task =="rest") 
-GC_Glasser_individual = calculate_GC(ts_Glasser_rest, "individual") %>% filter(task=="rest")
+ts_Glasser_concatenate = filter(ts_Glasser_concatenate, task =="rest") 
+GC_Glasser_individual = calculate_GC(ts_Glasser_concatenate, "individual") %>% filter(task=="rest")
 ```
 ```{r}
 #randomly select ten subjects and make brainmap of it (will need ggseg)
@@ -210,6 +214,38 @@ ggcorrplot(GC_Glasser_matrix, hc.order = TRUE, type = "lower") +
          axis.text.y = element_text(size=8))
 ```
 
+---------------------------------------------------------------
+
+QSIPREP 
+
+---------------------------------------------------------------
+```{r}
+#grab all noddi result data, maybe filter also for low coverage?
+noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>% 
+   rename(Node = name)%>%
+   mutate(Node = str_replace(Node, "L_", "Left_") %>% 
+           str_replace("R_", "Right_") %>%
+           str_replace("_ROI", "")
+        )
+noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run))
+```
+```{r}
+noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>%  
+  rename(Node = name) %>%
+  mutate(Node=str_replace(Node, "-AREA", "") %>%
+         str_replace("^RIGHT-(.*)$", "\\1_RIGHT") %>%
+         str_replace("^LEFT-(.*)$", "\\1_LEFT") %>%
+         str_replace("-STEM", "_STEM") %>%
+         str_replace("VENTRALDC", "DIENCEPHALON_VENTRAL") %>%
+         str_replace("-PROPER", "")
+  )
+  
+```
+```{r}
+#look at coverage files
+noddi_Glasser_coverage = filter(noddi_Glasser_results, coverage<0.5)
+```
+
 concatenating all fmriprep into one dataframe for easier filtering 
 ```{r}
 df_HCP = merge(alff_xcpd_HCP_results, reHo_xcpd_HCP_results, by= c("subject", "task", "session", "run", "Node"))
@@ -222,7 +258,10 @@ df_Glasser = merge(alff_xcpd_Glasser_results, reHo_xcpd_Glasser_results, by= c("
 df_Glasser = merge(df_Glasser, GC_Glasser_individual, by= c("subject", "task", "session", "run", "Node"))
 df_Glasser = merge(df_Glasser, coverage_xcpd_Glasser_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
 df_Glasser = merge(df_Glasser, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
-
+df_Glasser = merge(df_Glasser, age_df, by= c("subject"))
+df_Glasser = merge(df_Glasser, noddi_Glasser_results, by= c("subject","session", "Node"))
+df_Glasser= df_Glasser %>% select("subject", "session", "run", "age_at_mri", "task", "Node", everything())
+#does reho values that are NA need to removed, does it affect cor.test? na.omit() gets rid of whole row with NA i think
 ```
 ```{r}
 df_4S156Parcels = merge(alff_xcpd_4S156Parcels_results, reHo_xcpd_4S156Parcels_results, by= c("subject", "task", "session", "run", "Node"))
@@ -231,30 +270,23 @@ df_4S156Parcels = merge(df_4S156Parcels, coverage_xcpd_4S156Parcels_results, by=
 df_4S156Parcels = merge(df_4S156Parcels, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
 ```
 
----------------------------------------------------------------
-
-QSIPREP 
-
----------------------------------------------------------------
-```{r}
-#grab all noddi result data, maybe filter also for low coverage?
-noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>% 
-   mutate(name = str_replace(name, "L_", "Left_") %>% 
-           str_replace("R_", "Right_") %>%
-           str_replace("_ROI", "")
-        )
-noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run))
-noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv") %>% subset(select = -c(task,run))
-```
-```{r}
-#look at coverage files
-noddi_Glasser_coverage = filter(noddi_Glasser_results, coverage<0.5)
-```
-
 compare noddi with rsfmri
+issue is that parcellations for noddi don't match in name
 ```{r}
-
+df_HCP = merge(df_HCP, noddi_HCP_results, by= c("subject", "session", "Node"))
 ```
+
+```{r}
+plot(df_Glasser$ALFF, df_Glasser$icvf_mean, main = "ALFF vs. NDI",
+               xlab="ALFF", ylab="NDI"
+               ) +
+          abline(lm(df_Glasser$icvf_mean ~ df_Glasser$ALFF, df_Glasser), col="blue")
+```
+```{r}
+hist(age_df$age_at_mri)
+```
+
+
 
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
