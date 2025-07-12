@@ -14,11 +14,11 @@ options(repos = c(
 install.packages('ggsegGlasser')
 
 # Enable this universe
-options(repos = c(
-    ggseg = 'https://ggseg.r-universe.dev',
-    CRAN = 'https://cloud.r-project.org'))
+#options(repos = c(
+   # ggseg = 'https://ggseg.r-universe.dev',
+    #CRAN = 'https://cloud.r-project.org'))
 # Install some packages
-install.packages('ggsegSchaefer')
+#install.packages('ggsegSchaefer')
 
 #making a correlation matrix
 install.packages("ggcorrplot")
@@ -57,10 +57,11 @@ path_noddi = "/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftif
 ```{r}
 age_df = read_delim("/scratch/jwong/tay_pet_age.csv", delim = ",", show_col_types = FALSE) %>% 
   rename(subject=subject_id) %>%
-  mutate(subject = str_replace(subject, "TAY01_CMH_", "sub-CMH"))
-```
+  mutate(subject = str_replace(subject, "TAY01_CMH_", "sub-CMH")) %>%
+  subset(select=-c(age_at_pet))
 
-path_age = "/scratch/jwong/tay_pet_age.csv"
+age_df = age_df %>% mutate_if(is.numeric, round)
+```
 
 concatenate three different parcellations for alff, reho, coverage and motion
 ```{r}
@@ -138,24 +139,7 @@ ts_4S156Parcels_concatenate = wrangle_data(path_xcpd, "4S156Parcels_stat-mean_ti
 ts_4S156Parcels_concatenate = filter(ts_4S156Parcels_concatenate, task =="rest")
 GC_4S156Parcels_individual = calculate_GC(ts_4S156Parcels_concatenate, "individual") %>% filter(task=="rest")
 ```
-
-```{r}
-GC_4S156Parcels_group = calculate_GC(ts_4S156Parcels_concatenate, "group") %>% 
-  rename(region = Node) 
-
-```
-```{r}
-schaefer_df = as_tibble(schaefer17_100)
-```
-```{r}
-#i'm confused on which scahefer atlas to use
-ggseg(.data = GC_4S156Parcels_group,
-      atlas = schaefer17_100,
-      mapping = aes(fill=mean_GC)) +
-  scale_fill_viridis_c() +
-  theme_void() +
-  labs(title = paste("Mean GSCorr for Group"))
-```
+need to build a pipeline for schaefer atlas
 
 Glasser brainmap of mean gscorr
 ```{r}
@@ -226,8 +210,11 @@ noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.ts
    mutate(Node = str_replace(Node, "L_", "Left_") %>% 
            str_replace("R_", "Right_") %>%
            str_replace("_ROI", "")
-        )
-noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run))
+        ) 
+noddi_Glasser_results = merge(noddi_Glasser_results, age_df, by= c("subject"))
+
+noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run)) 
+noddi_Schaefer7N100_results = merge(noddi_Scahefer7N100_results, age_df, by= c("subject"))
 ```
 ```{r}
 noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>%  
@@ -238,7 +225,8 @@ noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv"
          str_replace("-STEM", "_STEM") %>%
          str_replace("VENTRALDC", "DIENCEPHALON_VENTRAL") %>%
          str_replace("-PROPER", "")
-  )
+  ) 
+noddi_HCP_results=  merge(noddi_HCP_results, age_df, by= c("subject"))
   
 ```
 ```{r}
@@ -252,14 +240,14 @@ df_HCP = merge(alff_xcpd_HCP_results, reHo_xcpd_HCP_results, by= c("subject", "t
 df_HCP = merge(df_HCP, GC_HCP_individual, by= c("subject", "task", "session", "run", "Node"))
 df_HCP = merge(df_HCP, coverage_xcpd_HCP_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
 df_HCP = merge(df_HCP, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
+df_HCP=merge(df_HCP, noddi_HCP_results, by=c("subject","session", "Node"), all=TRUE)
 ```
 ```{r}
 df_Glasser = merge(alff_xcpd_Glasser_results, reHo_xcpd_Glasser_results, by= c("subject", "task", "session", "run", "Node"))
 df_Glasser = merge(df_Glasser, GC_Glasser_individual, by= c("subject", "task", "session", "run", "Node"))
 df_Glasser = merge(df_Glasser, coverage_xcpd_Glasser_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
 df_Glasser = merge(df_Glasser, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
-df_Glasser = merge(df_Glasser, age_df, by= c("subject"))
-df_Glasser = merge(df_Glasser, noddi_Glasser_results, by= c("subject","session", "Node"))
+df_Glasser = merge(df_Glasser, noddi_Glasser_results, by= c("subject","session", "Node"), all=TRUE)
 df_Glasser= df_Glasser %>% select("subject", "session", "run", "age_at_mri", "task", "Node", everything())
 #does reho values that are NA need to removed, does it affect cor.test? na.omit() gets rid of whole row with NA i think
 ```
@@ -273,9 +261,86 @@ df_4S156Parcels = merge(df_4S156Parcels, motion_xcpd_results, by= c("subject", "
 compare noddi with rsfmri
 issue is that parcellations for noddi don't match in name
 ```{r}
-df_HCP = merge(df_HCP, noddi_HCP_results, by= c("subject", "session", "Node"))
+boxplot(noddi_Glasser_results$icvf_mean ~ noddi_Glasser_results$age_at_mri,
+data=noddi_Glasser_results,
+main="NDI vs AGE",
+xlab="Age",
+ylab="NDI Values",
+col="orange",
+border="brown"
+)
+
+box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
+boxplot(box_noddi_Glasser_results$icvf_mean ~ box_noddi_Glasser_results$age_at_mri,
+data=box_noddi_Glasser_results,
+main="NDI in GM vs. AGE",
+xlab="Age",
+ylab="NDI Values",
+col="pink",
+border="grey"
+)
+
+box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
+boxplot(box_noddi_Glasser_results$icvf_mean ~ box_noddi_Glasser_results$age_at_mri,
+main="NDI in WM vs. AGE",
+xlab="Age",
+ylab="NDI Values",
+col="green",
+border="grey"
+)
+```
+```{r}
+boxplot(noddi_Glasser_results$od_mean ~ noddi_Glasser_results$age_at_mri,
+        main="ODI vs. AGE",
+        xlab="Age",
+        ylab="ODI Values",
+        col="orange",
+        border="grey")
+
+box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
+boxplot(box_noddi_Glasser_results$od_mean ~ box_noddi_Glasser_results$age_at_mri,
+data=box_noddi_Glasser_results,
+main="ODI in GM vs. AGE",
+xlab="Age",
+ylab="ODI Values",
+col="pink",
+border="grey"
+)
+
+box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
+boxplot(box_noddi_Glasser_results$od_mean ~ box_noddi_Glasser_results$age_at_mri,
+main="ODI in WM vs. AGE",
+xlab="Age",
+ylab="ODI Values",
+col="green",
+border="grey"
+)
+```
+```{r}
+ggplot(noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)         
 ```
 
+```{r}
+install.packages("ggpubr")
+library(ggpubr)
+```
+```{r}
+ggplot(df_Glasser, aes(x = ALFF, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)  
+
+ggplot(df_Glasser, aes(x = ALFF, y = od_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
+```
 ```{r}
 plot(df_Glasser$ALFF, df_Glasser$icvf_mean, main = "ALFF vs. NDI",
                xlab="ALFF", ylab="NDI"
@@ -283,7 +348,9 @@ plot(df_Glasser$ALFF, df_Glasser$icvf_mean, main = "ALFF vs. NDI",
           abline(lm(df_Glasser$icvf_mean ~ df_Glasser$ALFF, df_Glasser), col="blue")
 ```
 ```{r}
-hist(age_df$age_at_mri)
+glasser_dmn =wrangle_data(path_xcpd, "atlas-Glasser_dseg.tsv") %>% filter(community_yeo=="default mode") %>% pull(label)
+
+glasser_dmn= df_Glasser %>% filter(Node %in% glasser_dmn)
 ```
 
 
