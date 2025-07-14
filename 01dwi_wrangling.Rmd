@@ -8,8 +8,8 @@ https://github.com/ggseg/ggsegGlasser
 ```{r setup}
 # Enable this universe
 options(repos = c(
-    ggseg = 'https://ggseg.r-universe.dev',
-    CRAN = 'https://cloud.r-project.org'))
+   ggseg = 'https://ggseg.r-universe.dev',
+   CRAN = 'https://cloud.r-project.org'))
 # Install some packages
 install.packages('ggsegGlasser')
 
@@ -20,8 +20,10 @@ install.packages('ggsegGlasser')
 # Install some packages
 #install.packages('ggsegSchaefer')
 
-#making a correlation matrix
-install.packages("ggcorrplot")
+#install.packages("ggpubr")
+library(ggpubr)
+
+#install.packages("ggcorrplot")
 library(ggcorrplot)
 
 library(tidyverse)
@@ -133,6 +135,56 @@ ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv")
 ts_HCP_concatenate = filter(ts_HCP_concatenate, task =="rest")
 GC_HCP_individual = calculate_GC(ts_HCP_concatenate, "individual") %>% filter(task=="rest")
 ```
+HCP brainmap for QC
+```{r}
+#aseg_df=as_tibble(aseg)
+
+#randomly select ten subjects and make brainmap of it (will need ggseg)
+ten_sub = sample(unique(ts_HCP_concatenate$subject), 10)
+GC_HCP_rand_individual= calculate_GC(ts_HCP_concatenate, "individual") %>% 
+  filter(subject %in% ten_sub) %>%
+  filter(run=="run-01") %>% #need to choose a run, or else has two values per subject
+  rename(label = Node)
+
+GC_HCP_rand_individual$label = GC_HCP_rand_individual$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+
+GC_HCP_group = calculate_GC(ts_HCP_concatenate, "group") %>% 
+  rename(label = Node)
+GC_HCP_group$label = GC_HCP_group$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+#to note: aseg does not have accumbens as a label, it also splits cerebellum into white matter and cortex which we do not have with HCP
+```
+
+```{r}
+ggseg(.data = GC_HCP_rand_individual,
+      atlas = aseg,
+      mapping = aes(fill=mean_GC)) +
+  facet_wrap(~subject) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Subject", ~subject))
+
+ggseg(.data = GC_HCP_group,
+      atlas = aseg,
+      mapping = aes(fill=mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Group"))
+```
+
 Schaefer brainmap of mean gscorr
 ```{r}
 ts_4S156Parcels_concatenate = wrangle_data(path_xcpd, "4S156Parcels_stat-mean_timeseries.tsv") 
@@ -150,20 +202,16 @@ GC_Glasser_individual = calculate_GC(ts_Glasser_concatenate, "individual") %>% f
 ```
 ```{r}
 #randomly select ten subjects and make brainmap of it (will need ggseg)
-ten_sub = sample(unique(ts_Glasser_rest$subject), 10)
-GC_Glasser_rand_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
+ten_sub = sample(unique(ts_Glasser_concatenate$subject), 10)
+GC_Glasser_rand_individual= calculate_GC(ts_Glasser_concatenate, "individual") %>% 
   filter(subject %in% ten_sub) %>%
+  filter(run=="run-01") %>%
   rename(label = Node) %>%    
   mutate(subject = as.factor(subject)) %>% 
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
            str_replace("Right", "rh_R"))
 
-GC_Glasser_individual= calculate_GC(ts_Glasser_rest, "individual") %>% 
-  rename(label = Node) %>%    
-  mutate(subject = as.factor(subject)) %>% 
-  mutate(label = str_replace(label, "Left", "lh_L") %>% 
-           str_replace("Right", "rh_R"))
-GC_Glasser_group = calculate_GC(ts_Glasser_rest, "group") %>% 
+GC_Glasser_group = calculate_GC(ts_Glasser_concatenate, "group") %>% 
   rename(label = Node) %>%    
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
            str_replace("Right", "rh_R"))
@@ -188,9 +236,34 @@ ggseg(.data = GC_Glasser_group,
   theme_void() +
   labs(title = paste("Mean GSCorr for Group"))
 ```
+Matrix to check variability between subjects
+-------------------------------------------------
 ```{r}
-GC_Glasser_wide = subset(GC_Glasser_individual, select=c(subject, label, mean_GC)) %>% pivot_wider(names_from = subject, values_from = mean_GC)
-GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-label), use = "pairwise.complete.obs")
+matrixQC = function (dataframe, run_num, title_string){
+  dataframe = filter(dataframe, run==run_num)
+  wide = subset(dataframe, select=c(subject, Node, mean_GC)) %>% pivot_wider(names_from = subject, values_from = mean_GC) 
+  matrix_calculate = cor(wide %>% select(-Node), use = "pairwise.complete.obs")
+  
+  ggcorrplot(matrix_calculate, hc.order = TRUE, type = "lower") +
+  theme (axis.text.x = element_text(angle= 90, vjust=1, hjust = 1, size=8),
+         axis.text.y = element_text(size=8)) +
+  labs(title= title_string)
+}
+```
+
+```{r}
+matrixQC(GC_Glasser_individual, "run-01", "Glasser run-01")
+matrixQC(GC_HCP_individual, "run-01", "HCP run-01")
+
+#negative correlation... why???
+```
+```{r}
+#delete later (I basically put this into the function matrixQC)
+GC_Glasser_wide = GC_Glasser_individual %>%
+  filter(run=="run-01") %>%
+  subset(select=c(subject, Node, mean_GC)) %>% 
+  pivot_wider(names_from = subject, values_from = mean_GC)
+GC_Glasser_matrix = cor(GC_Glasser_wide %>% select(-Node), use = "pairwise.complete.obs")
 ```
 ```{r}
 ggcorrplot(GC_Glasser_matrix, hc.order = TRUE, type = "lower") +
@@ -260,34 +333,73 @@ df_4S156Parcels = merge(df_4S156Parcels, motion_xcpd_results, by= c("subject", "
 
 compare noddi with rsfmri
 issue is that parcellations for noddi don't match in name
+AGE- NODDI
+```{r}
+ggplot(noddi_Glasser_results, aes(x=factor(age_at_mri), y=icvf_mean)) +
+  geom_boxplot()
+```
+```{r}
+ # Top 10 strongest NDI correlations
+top_regions <- noddi_Glasser_results %>%
+  group_by(Node) %>%
+  summarize(correlate = cor(age_at_mri, icvf_mean, method = "spearman")) %>%
+  arrange(desc(abs(correlate))) %>%
+  slice_head(n = 10)
+
+ggplot(top_regions, aes(x = reorder(Node, correlate), y = correlate)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Top 10 Age-NDI Region Correlations", y = "Spearman Correlation", x = "")
+
+top_regions <- noddi_Glasser_results %>%
+  group_by(Node) %>%
+  summarize(correlate = cor(age_at_mri, od_mean, method = "spearman")) %>%
+  arrange(desc(abs(correlate))) %>%
+  slice_head(n = 10)
+
+ggplot(top_regions, aes(x = reorder(Node, correlate), y = correlate)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Top 10 Age-ODI Region Correlations", y = "Spearman Correlation", x = "")
+```
 ```{r}
 boxplot(noddi_Glasser_results$icvf_mean ~ noddi_Glasser_results$age_at_mri,
-data=noddi_Glasser_results,
-main="NDI vs AGE",
-xlab="Age",
-ylab="NDI Values",
-col="orange",
-border="brown"
+        data=noddi_Glasser_results,
+        main="NDI vs AGE",
+        xlab="Age",
+        ylab="NDI Values",
+        col="orange",
+        border="grey"
 )
 
-box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
-boxplot(box_noddi_Glasser_results$icvf_mean ~ box_noddi_Glasser_results$age_at_mri,
-data=box_noddi_Glasser_results,
-main="NDI in GM vs. AGE",
-xlab="Age",
-ylab="NDI Values",
-col="pink",
-border="grey"
+filter_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
+boxplot(filter_noddi_Glasser_results$icvf_mean ~ filter_noddi_Glasser_results$age_at_mri,
+        data=filter_noddi_Glasser_results,
+        main="NDI in GM vs. AGE",
+        xlab="Age",
+        ylab="NDI Values",
+        col="pink",
+        border="grey"
 )
+ggplot(filter_noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
 
-box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
-boxplot(box_noddi_Glasser_results$icvf_mean ~ box_noddi_Glasser_results$age_at_mri,
-main="NDI in WM vs. AGE",
-xlab="Age",
-ylab="NDI Values",
-col="green",
-border="grey"
+filter_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
+boxplot(filter_noddi_Glasser_results$icvf_mean ~ filter_noddi_Glasser_results$age_at_mri,
+        main="NDI in WM vs. AGE",
+        xlab="Age",
+        ylab="NDI Values",
+        col="green",
+        border="grey"
 )
+ggplot(filter_noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
 ```
 ```{r}
 boxplot(noddi_Glasser_results$od_mean ~ noddi_Glasser_results$age_at_mri,
@@ -297,37 +409,50 @@ boxplot(noddi_Glasser_results$od_mean ~ noddi_Glasser_results$age_at_mri,
         col="orange",
         border="grey")
 
-box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
-boxplot(box_noddi_Glasser_results$od_mean ~ box_noddi_Glasser_results$age_at_mri,
-data=box_noddi_Glasser_results,
-main="ODI in GM vs. AGE",
-xlab="Age",
-ylab="ODI Values",
-col="pink",
-border="grey"
+filter_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="GM")
+boxplot(filter_noddi_Glasser_results$od_mean ~ filter_noddi_Glasser_results$age_at_mri,
+  main="ODI in GM vs. AGE",
+  xlab="Age",
+  ylab="ODI Values",
+  col="pink",
+  border="grey"
+)
+ggplot(filter_noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
+
+filter_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
+boxplot(filter_noddi_Glasser_results$od_mean ~ filter_noddi_Glasser_results$age_at_mri,
+        main="ODI in WM vs. AGE",
+        xlab="Age",
+        ylab="ODI Values",
+        col="green",
+        border="grey"
 )
 
-box_noddi_Glasser_results = noddi_Glasser_results%>% filter(tissue=="WM")
-boxplot(box_noddi_Glasser_results$od_mean ~ box_noddi_Glasser_results$age_at_mri,
-main="ODI in WM vs. AGE",
-xlab="Age",
-ylab="ODI Values",
-col="green",
-border="grey"
-)
+ggplot(filter_noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
 ```
 ```{r}
 ggplot(noddi_Glasser_results, aes(x = age_at_mri, y = icvf_mean)) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE, color = "blue") +  
   stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
-  stat_regline_equation(label.x = 1, label.y = 0.8)         
+  stat_regline_equation(label.x = 1, label.y = 0.8)
+ggplot(noddi_Glasser_results, aes(x = age_at_mri, y = od_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
 ```
 
-```{r}
-install.packages("ggpubr")
-library(ggpubr)
-```
+
+NODDI and rsfMRI 
 ```{r}
 ggplot(df_Glasser, aes(x = ALFF, y = icvf_mean)) +
   geom_point() +
@@ -347,10 +472,58 @@ plot(df_Glasser$ALFF, df_Glasser$icvf_mean, main = "ALFF vs. NDI",
                ) +
           abline(lm(df_Glasser$icvf_mean ~ df_Glasser$ALFF, df_Glasser), col="blue")
 ```
+
+looking at default mode network:
 ```{r}
 glasser_dmn =wrangle_data(path_xcpd, "atlas-Glasser_dseg.tsv") %>% filter(community_yeo=="default mode") %>% pull(label)
 
-glasser_dmn= df_Glasser %>% filter(Node %in% glasser_dmn)
+glasser_dmn= df_Glasser %>% filter(Node %in% glasser_dmn) 
+```
+```{r}
+glasser_dmn_group = glasser_dmn %>% group_by(Node) %>%   summarise(
+    ALFF = mean(ALFF, na.rm = TRUE),
+    ReHo = mean(ReHo, na.rm = TRUE),
+    mean_GC = mean(mean_GC, na.rm = TRUE)
+  )  %>% 
+  rename(label = Node) %>%    
+  mutate(label = str_replace(label, "Left", "lh_L") %>% 
+           str_replace("Right", "rh_R"))
+
+ggseg(.data = glasser_dmn_group,
+      atlas = glasser,
+      mapping = aes(fill=mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Mean GSCorr for Group DMN"))
+
+ggseg(.data = glasser_dmn_group,
+      atlas = glasser,
+      mapping = aes(fill=ALFF)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ALFF for Group DMN"))
+
+ggseg(.data = glasser_dmn_group,
+      atlas = glasser,
+      mapping = aes(fill=ReHo)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ReHo for Group DMN"))
+
+```
+
+```{r}
+ggplot(glasser_dmn, aes(x = ALFF, y = od_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
+
+ggplot(glasser_dmn, aes(x = ALFF, y = icvf_mean)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
+  stat_regline_equation(label.x = 1, label.y = 0.8)
 ```
 
 
