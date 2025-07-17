@@ -4,7 +4,6 @@ author: "Anisha Miah"
 date: "2025-06-04"
 output: html_document
 ---
-https://github.com/ggseg/ggsegGlasser
 ```{r setup}
 # Enable this universe
 #options(repos = c(
@@ -20,15 +19,17 @@ https://github.com/ggseg/ggsegGlasser
 # Install some packages
 #install.packages('ggsegSchaefer')
 
+library(tidyverse)
+
 #install.packages("ggpubr")
 library(ggpubr)
-
 #install.packages("ggcorrplot")
 library(ggcorrplot)
-
-library(tidyverse)
 library(ggseg)
 library(ggplot2)
+#install.packages("ggridges")
+library(ggridges)
+
 library(ggsegGlasser)
 library(ggsegSchaefer)
 ```
@@ -54,7 +55,7 @@ wrangle_data = function (path,pattern #, output_path
 }
 
 path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
-path_noddi = "/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/ciftify_parcellations/"
+path_noddi = "/projects/jwong/qsiprep/output/noddi_extract/ciftify_parcellations/"
 ```
 ```{r}
 age_df = read_delim("/scratch/jwong/tay_pet_age.csv", delim = ",", show_col_types = FALSE) %>% 
@@ -274,13 +275,6 @@ ts_Glasser_QC = ts_Glasser_concatenate %>%
 ggplot(ts_Glasser_QC, aes(x= timepoint, y= Signal, group = Node)) +
        geom_point() + geom_line() +
        facet_wrap(~ subject, scales="free_y")
-       
-#need to turn ts_glasser_concatenate into long format
-#then add a column with timepoints that starts at 1 whenever a new subject begins
-#possible dataframe: subject, timepoint, Node, Signal ? or could do subject, Node, timepoint 1, timepoint 2, etc.
-#https://stackoverflow.com/questions/58818300/ggplot-for-each-column-in-a-data , https://forum.posit.co/t/how-plot-all-values-inside-a-data-frame-into-a-graph-using-ggplot-function/75021/2 
-
-
 ```
 ```{r}
 #timepoint comparison for QC
@@ -315,10 +309,12 @@ noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.ts
    mutate(Node = str_replace(Node, "L_", "Left_") %>% 
            str_replace("R_", "Right_") %>%
            str_replace("_ROI", "")
-        ) 
+        ) %>%
+  filter(coverage>0.5)
 noddi_Glasser_results = merge(noddi_Glasser_results, age_df, by= c("subject"))
 
-noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run)) 
+noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>%
+  filter(coverage>0.5)
 noddi_Schaefer7N100_results = merge(noddi_Scahefer7N100_results, age_df, by= c("subject"))
 ```
 ```{r}
@@ -330,13 +326,10 @@ noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv"
          str_replace("-STEM", "_STEM") %>%
          str_replace("VENTRALDC", "DIENCEPHALON_VENTRAL") %>%
          str_replace("-PROPER", "")
-  ) 
+  ) %>%
+  filter(coverage>0.5)
 noddi_HCP_results=  merge(noddi_HCP_results, age_df, by= c("subject"))
   
-```
-```{r}
-#look at coverage files
-noddi_Glasser_coverage = filter(noddi_Glasser_results, coverage<0.5)
 ```
 
 concatenating all fmriprep into one dataframe for easier filtering 
@@ -361,6 +354,14 @@ df_4S156Parcels = merge(alff_xcpd_4S156Parcels_results, reHo_xcpd_4S156Parcels_r
 df_4S156Parcels = merge(df_4S156Parcels, GC_4S156Parcels_individual, by= c("subject", "task", "session", "run", "Node"))
 df_4S156Parcels = merge(df_4S156Parcels, coverage_xcpd_4S156Parcels_results, by= c("subject", "task", "session", "run", "Node")) %>% filter(coverage>0.5)
 df_4S156Parcels = merge(df_4S156Parcels, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
+```
+-------------------------------------
+GLASSER ANALYSIS
+-------------------------------------
+
+NODDI and rsfMRI brainmaps
+```{r}
+
 ```
 
 AGE- NODDI
@@ -432,19 +433,30 @@ ggseg(.data = age_noddi_cor,
   theme_void() +
   labs(title = paste("Age and ODI for Group"))
 ```
+
+https://stackoverflow.com/questions/76721432/how-can-i-add-fill-gradient-color-to-a-density-plot-in-r-with-only-one-variable 
 ```{r}
 #density plot
-ggplot(age_noddi_cor, aes(x=age_icvf_cor)) +
-  geom_density() +
+ggplot(age_noddi_cor, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  geom_vline(aes(xintercept=mean(age_icvf_cor)),
+            color="blue", linetype="dashed", size=1) +
   labs(title="NDI AGE Correlations")
-ggplot(age_noddi_cor, aes(x=age_od_cor)) +
-  geom_density() +
+
+ggplot(age_noddi_cor, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  geom_vline(aes(xintercept=mean(age_od_cor)),
+            color="blue", linetype="dashed", size=1) +
   labs(title="ODI AGE Correlations")
 ```
 
 NODDI and rsfMRI 
 ```{r}
-rsfmri_noddi_cor = df_Glasser %>%
+glasser_rsfmri_noddi_cor = df_Glasser %>%
   group_by(Node) %>%
   summarize(alff_icvf_cor = cor(ALFF, icvf_mean, use="na.or.complete"), 
             alff_od_cor = cor(ALFF, od_mean, use="na.or.complete"),
@@ -457,59 +469,59 @@ rsfmri_noddi_cor = df_Glasser %>%
            str_replace("Right", "rh_R"))
 ```
 ```{r}
-ggplot(rsfmri_noddi_cor, aes(x=alff_icvf_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_icvf_cor)) +
   geom_density() +
   labs(title="NDI ALFF Correlations")
-ggplot(rsfmri_noddi_cor, aes(x=reho_icvf_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_icvf_cor)) +
   geom_density() +
   labs(title="NDI ReHo Correlations")
-ggplot(rsfmri_noddi_cor, aes(x=GC_icvf_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_icvf_cor)) +
   geom_density() +
   labs(title="NDI GC Correlations")
 
-ggplot(rsfmri_noddi_cor, aes(x=alff_od_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_od_cor)) +
   geom_density() +
   labs(title="ODI ALFF Correlations")
-ggplot(rsfmri_noddi_cor, aes(x=reho_od_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_od_cor)) +
   geom_density() +
   labs(title="ODI ReHo Correlations")
-ggplot(rsfmri_noddi_cor, aes(x=GC_od_cor)) +
+ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_od_cor)) +
   geom_density() +
   labs(title="ODI GC Correlations")
 ```
 ```{r}
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= alff_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("ALFF and NDI for Group"))
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= reho_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("REHO and NDI for Group"))
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= GC_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("GC and NDI for Group"))
 
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= alff_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("ALFF and ODI for Group"))
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= reho_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("REHO and ODI for Group"))
-ggseg(.data = rsfmri_noddi_cor,
+ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= GC_od_cor)) +
   scale_fill_viridis_c() +
@@ -553,8 +565,9 @@ ggplot(df_Glasser, aes(x = mean_GC, y = od_mean)) +
   stat_cor(method = "pearson", label.x = 0.4, label.y = 1) +  
   stat_regline_equation(label.x = 0.4, label.y = 0.8)
 ```
-
-
+-----------------------------------------
+HCP ANALYSIS
+-----------------------------------------
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
