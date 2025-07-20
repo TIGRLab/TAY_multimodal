@@ -683,6 +683,203 @@ ggplot(df_Glasser, aes(x = mean_GC, y = od_mean)) +
 -----------------------------------------
 HCP ANALYSIS
 -----------------------------------------
+AGE- NODDI
+```{r}
+age_noddi_cor_HCP = noddi_HCP_results %>%
+  group_by(Node) %>%
+  summarize(age_icvf_cor = cor(age_at_mri, icvf_mean, method = "spearman"), 
+            age_od_cor = cor(age_at_mri, od_mean, method = "spearman")) %>%
+  rename(label=Node) 
+age_noddi_cor_HCP$label= age_noddi_cor_HCP$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+ 
+
+ggseg(.data = age_noddi_cor_HCP,
+      atlas = aseg,
+      mapping = aes(fill= age_icvf_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = age_noddi_cor_HCP,
+      atlas = aseg,
+      mapping = aes(fill= age_od_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
+```
+
+```{r}
+#density plot
+ggplot(age_noddi_cor_HCP, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c() +
+  coord_flip() +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(age_icvf_cor)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title=paste("NDI AGE Correlations"), y=paste("Estimated Probability Density"))
+
+ggplot(age_noddi_cor_HCP, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+  geom_vline(aes(xintercept=mean(age_od_cor)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title=paste("ODI AGE Correlations"), y=paste("Estimated Probability Density")) +
+    theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  )
+```
+
+NODDI and rsfMRI 
+```{r}
+HCP_rsfmri_noddi_cor = df_HCP %>%
+  group_by(Node) %>%
+  summarize(alff_icvf_cor = cor(ALFF, icvf_mean, use="na.or.complete"), 
+            alff_od_cor = cor(ALFF, od_mean, use="na.or.complete"),
+            reho_icvf_cor = cor(ReHo, icvf_mean, use="na.or.complete"), 
+            reho_od_cor = cor(ReHo, od_mean, use="na.or.complete"),
+            GC_icvf_cor = cor(mean_GC, icvf_mean, use="na.or.complete"), 
+            GC_od_cor = cor(mean_GC, od_mean, use="na.or.complete")) %>%
+  rename(label=Node) 
+
+HCP_rsfmri_noddi_cor$label = HCP_rsfmri_noddi_cor$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+
+```
+```{r}
+ggplot(HCP_rsfmri_noddi_cor, aes(x=alff_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(alff_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI ALFF Correlations", y="Estmated Probability Density")
+ggplot(HCP_rsfmri_noddi_cor, aes(x=reho_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(reho_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI ReHo Correlations", y="Estimated Probability Density")
+ggplot(HCP_rsfmri_noddi_cor, aes(x=GC_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(GC_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI GC Correlations", y="Estimated Probability Density")
+
+ggplot(HCP_rsfmri_noddi_cor, aes(x=alff_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(alff_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI ALFF Correlations", y="Estimated Probability Density")
+ggplot(HCP_rsfmri_noddi_cor, aes(x=reho_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(reho_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI ReHo Correlations", y="Estimated Probability Density")
+ggplot(HCP_rsfmri_noddi_cor, aes(x=GC_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(GC_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI GC Correlations", y="Estimated Probability Density")
+```
+```{r}
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= alff_icvf_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ALFF and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= reho_icvf_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("REHO and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= GC_icvf_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("GC and NDI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= alff_od_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ALFF and ODI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= reho_od_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("REHO and ODI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= GC_od_cor)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("GC and ODI for Group"), fill=paste("Spearman Correlation"))
+```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
