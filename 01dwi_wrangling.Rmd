@@ -95,18 +95,6 @@ coverage_xcpd_4S156Parcels_results= wrangle_data(path_xcpd,"4S156Parcels_stat-co
 motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv") %>% subset(select=c(subject,task,session,run,mean_fd)) %>% filter(task=="rest")
 ```
 
-can likely delete this section.
-checking through motion and coverage files for outlier subjects
-```{r}
-#xcpd paper given mentions if coverage below 0.5 = bad parcellation 
-coverage_Glasser_below_threshold =  filter(coverage_xcpd_Glasser_results, coverage <0.5) #435
-coverage_HCP_below_threshold = filter(coverage_xcpd_HCP_results, coverage<0.5) #0
-coverage_4S156_belowthreshold = filter(coverage_xcpd_4S156_results, coverage<0.5) #4 observations, same subject 846 for Cerebellar_Region4 
-
-#motion QC - thresholding if higher than 0.5
-motion_above_threshold = filter(motion_xcpd_results, mean_fd>0.5) #2 - sub 148 for two scans
-```
-
 function for global corr calculation:
 ```{r}
 calculate_GC = function(dataframe, string){
@@ -166,7 +154,6 @@ GC_HCP_group$label = GC_HCP_group$label %>% tolower() %>%
 
 #to note: aseg does not have accumbens as a label, it also splits cerebellum into white matter and cortex which we do not have with HCP
 ```
-
 ```{r}
 ggseg(.data = GC_HCP_rand_individual,
       atlas = aseg,
@@ -296,12 +283,7 @@ ggplot(ts_HCP_QC, aes(x= timepoint, y= Signal, colour=Node, group = Node)) +
        facet_wrap(~ subject, scales="free_y")
 ```
 
-
----------------------------------------------------------------
-
-QSIPREP 
-
----------------------------------------------------------------
+concatenating all results
 ```{r}
 #grab all noddi result data, maybe filter also for low coverage?
 noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task,run))%>%
@@ -311,13 +293,14 @@ noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.ts
            str_replace("_ROI", "")
         ) %>%
   filter(coverage>0.5)
-noddi_Glasser_results = merge(noddi_Glasser_results, age_df, by= c("subject"))
+noddi_Glasser_results = merge(noddi_Glasser_results, age_df, by= c("subject")) %>%
+  filter(subject!="sub-CMH00000125")
 
 noddi_Scahefer7N100_results = wrangle_data(path_noddi, "Schaefer7N100_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>%
   filter(coverage>0.5)
-noddi_Schaefer7N100_results = merge(noddi_Scahefer7N100_results, age_df, by= c("subject"))
-```
-```{r}
+noddi_Schaefer7N100_results = merge(noddi_Scahefer7N100_results, age_df, by= c("subject"))%>%
+  filter(subject!="sub-CMH00000125")
+
 noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv") %>% subset(select = -c(task,run)) %>%
   rename(Node = name) %>%
   mutate(Node=str_replace(Node, "-AREA", "") %>%
@@ -328,8 +311,8 @@ noddi_HCP_results = wrangle_data(path_noddi, "aparcaseg_model-noddi_results.tsv"
          str_replace("-PROPER", "")
   ) %>%
   filter(coverage>0.5)
-noddi_HCP_results=  merge(noddi_HCP_results, age_df, by= c("subject"))
-  
+noddi_HCP_results=  merge(noddi_HCP_results, age_df, by= c("subject")) %>%
+  filter(subject!="sub-CMH00000125")
 ```
 
 concatenating all fmriprep into one dataframe for easier filtering 
@@ -361,57 +344,126 @@ GLASSER ANALYSIS
 
 NODDI and rsfMRI brainmaps
 ```{r}
-
+brainmap_Glasser = df_Glasser %>% group_by(Node) %>%
+  summarise(
+    ALFF= mean(ALFF, na.rm=TRUE),
+    ReHo = mean(ReHo, na.rm=TRUE),
+    mean_GC= mean(mean_GC, na.rm=TRUE),
+    icvf_mean = mean(icvf_mean, na.rm=TRUE),
+    od_mean= mean(od_mean, na.rm=TRUE)
+ ) %>%
+  rename(label=Node) %>%
+  mutate(label = str_replace(label, "Left", "lh_L") %>% 
+           str_replace("Right", "rh_R"))
+  
+brainmap_HCP = df_HCP %>% group_by(Node) %>%
+  summarise(
+    ALFF= mean(ALFF, na.rm=TRUE),
+    ReHo = mean(ReHo, na.rm=TRUE),
+    mean_GC= mean(mean_GC, na.rm=TRUE),
+    icvf_mean = mean(icvf_mean, na.rm=TRUE),
+    od_mean= mean(od_mean, na.rm=TRUE)
+ ) %>% rename(label=Node)
+brainmap_HCP$label = brainmap_HCP$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+```
+```{r}
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= ALFF)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ALFF using Glasser"))
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= ReHo)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ReHo using Glasser"))
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("GSCor using Glasser"))
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= icvf_mean)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("NDI using Glasser"))
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= od_mean)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ODI using Glasser"))
+```
+```{r}
+ggseg(.data = brainmap_HCP,
+      atlas = aseg,
+      mapping = aes(fill= ALFF)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ALFF using HCP"))
+ggseg(.data = brainmap_HCP,
+      atlas = aseg,
+      mapping = aes(fill= ReHo)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("ReHo using HCP"))
+ggseg(.data = brainmap_HCP,
+      atlas = aseg,
+      mapping = aes(fill= mean_GC)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("GSCor using HCP"), fill=paste("GSCorr"))
+ggseg(.data = brainmap_HCP,
+      atlas = aseg,
+      mapping = aes(fill= icvf_mean)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title = paste("NDI using HCP"), fill=paste("NDI"))
+ggseg(.data = brainmap_HCP,
+      atlas = aseg,
+      mapping = aes(fill= od_mean)) +
+  scale_fill_viridis_c() +
+  theme_void() +
+  labs(title=paste("ODI using HCP"), fill=paste("ODI"))
 ```
 
 AGE- NODDI
 ```{r}
  # Top 10 strongest NDI correlations
-age_noddi_cor = noddi_Glasser_results %>%
+age_noddi_cor_Glasser = noddi_Glasser_results %>%
   group_by(Node) %>%
   summarize(correlate = cor(age_at_mri, icvf_mean, method = "spearman")) %>%
   arrange(desc(abs(correlate))) %>%
   slice_head(n = 10)
-ggplot(age_noddi_cor, aes(x = reorder(Node, correlate), y = correlate)) +
+ggplot(age_noddi_cor_Glasser, aes(x = reorder(Node, correlate), y = correlate)) +
   geom_col() +
   coord_flip() +
   labs(title = "Top 10 Age-NDI Region Correlations", y = "Spearman Correlation", x = "")
 
-age_noddi_cor = noddi_Glasser_results %>%
+age_noddi_cor_Glasser = noddi_Glasser_results %>%
   group_by(Node) %>%
   summarize(correlate = cor(age_at_mri, od_mean, method = "spearman")) %>%
   arrange(desc(abs(correlate))) %>%
   slice_head(n = 10)
-ggplot(age_noddi_cor, aes(x = reorder(Node, correlate), y = correlate)) +
+ggplot(age_noddi_cor_Glasser, aes(x = reorder(Node, correlate), y = correlate)) +
   geom_col() +
   coord_flip() +
   labs(title = "Top 10 Age-ODI Region Correlations", y = "Spearman Correlation", x = "")
-
-#might delete, I'm nopt sure if I need
-age_noddi_cor = noddi_Glasser_results %>%
-  group_by(Node, age_at_mri) %>%
-  summarise(
-    icvf_mean = mean(icvf_mean),
-    od_mean = mean(od_mean)
-  )
 ```
-```{r}
-ggplot(age_noddi_cor%>% filter(Node=="Right_p10p"), aes(x = age_at_mri, y = icvf_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
-  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
-  stat_regline_equation(label.x = 1, label.y = 0.8) +
-  labs(title= "Right_p10p: NDI vs Age")
 
-ggplot(age_noddi_cor %>% filter(Node=="Right_4") , aes(x = age_at_mri, y = icvf_mean)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") +  
-  stat_cor(method = "pearson", label.x = 1, label.y = 1) +  
-  stat_regline_equation(label.x = 1, label.y = 0.8) +
-  labs(title= "Right_4: NDI vs Age")
-```
 ```{r}
-age_noddi_cor = noddi_Glasser_results %>%
+age_noddi_cor_Glasser = noddi_Glasser_results %>%
   group_by(Node) %>%
   summarize(age_icvf_cor = cor(age_at_mri, icvf_mean, method = "spearman"), 
             age_od_cor = cor(age_at_mri, od_mean, method = "spearman")) %>%
@@ -419,39 +471,49 @@ age_noddi_cor = noddi_Glasser_results %>%
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
            str_replace("Right", "rh_R"))
 
-ggseg(.data = age_noddi_cor,
+ggseg(.data = age_noddi_cor_Glasser,
       atlas = glasser,
       mapping = aes(fill= age_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("Age and NDI for Group"))
+  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
 
-ggseg(.data = age_noddi_cor,
+ggseg(.data = age_noddi_cor_Glasser,
       atlas = glasser,
       mapping = aes(fill= age_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("Age and ODI for Group"))
+  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
 
 https://stackoverflow.com/questions/76721432/how-can-i-add-fill-gradient-color-to-a-density-plot-in-r-with-only-one-variable 
 ```{r}
 #density plot
-ggplot(age_noddi_cor, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
+ggplot(age_noddi_cor_Glasser, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
   geom_density_ridges_gradient()+
-  scale_fill_viridis_c()+
+  scale_fill_viridis_c() +
   coord_flip() +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
   geom_vline(aes(xintercept=mean(age_icvf_cor)),
             color="blue", linetype="dashed", size=1) +
-  labs(title="NDI AGE Correlations")
+  labs(title=paste("NDI AGE Correlations"), y=paste("Estimated Probability Density"))
 
-ggplot(age_noddi_cor, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
+ggplot(age_noddi_cor_Glasser, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
   geom_density_ridges_gradient()+
   scale_fill_viridis_c()+
   coord_flip() +
+  theme_classic() +
   geom_vline(aes(xintercept=mean(age_od_cor)),
             color="blue", linetype="dashed", size=1) +
-  labs(title="ODI AGE Correlations")
+  labs(title=paste("ODI AGE Correlations"), y=paste("Estimated Probability Density")) +
+    theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  )
 ```
 
 NODDI and rsfMRI 
@@ -469,25 +531,79 @@ glasser_rsfmri_noddi_cor = df_Glasser %>%
            str_replace("Right", "rh_R"))
 ```
 ```{r}
-ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_icvf_cor)) +
-  geom_density() +
-  labs(title="NDI ALFF Correlations")
-ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_icvf_cor)) +
-  geom_density() +
-  labs(title="NDI ReHo Correlations")
-ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_icvf_cor)) +
-  geom_density() +
-  labs(title="NDI GC Correlations")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(alff_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI ALFF Correlations", y="Estmated Probability Density")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(reho_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI ReHo Correlations", y="Estimated Probability Density")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(GC_icvf_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="NDI GC Correlations", y="Estimated Probability Density")
 
-ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_od_cor)) +
-  geom_density() +
-  labs(title="ODI ALFF Correlations")
-ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_od_cor)) +
-  geom_density() +
-  labs(title="ODI ReHo Correlations")
-ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_od_cor)) +
-  geom_density() +
-  labs(title="ODI GC Correlations")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=alff_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(alff_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI ALFF Correlations", y="Estimated Probability Density")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=reho_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(reho_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI ReHo Correlations", y="Estimated Probability Density")
+ggplot(glasser_rsfmri_noddi_cor, aes(x=GC_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_viridis_c()+
+  coord_flip() +
+  theme_classic() +
+ theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(GC_od_cor, na.rm=TRUE)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title="ODI GC Correlations", y="Estimated Probability Density")
 ```
 ```{r}
 ggseg(.data = glasser_rsfmri_noddi_cor,
@@ -495,40 +611,39 @@ ggseg(.data = glasser_rsfmri_noddi_cor,
       mapping = aes(fill= alff_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("ALFF and NDI for Group"))
+  labs(title = paste("ALFF and NDI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= reho_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("REHO and NDI for Group"))
+  labs(title = paste("REHO and NDI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= GC_icvf_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("GC and NDI for Group"))
+  labs(title = paste("GC and NDI for Group"), fill=paste("Spearman Correlation"))
 
 ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= alff_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("ALFF and ODI for Group"))
+  labs(title = paste("ALFF and ODI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= reho_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("REHO and ODI for Group"))
+  labs(title = paste("REHO and ODI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = glasser_rsfmri_noddi_cor,
       atlas = glasser,
       mapping = aes(fill= GC_od_cor)) +
   scale_fill_viridis_c() +
   theme_void() +
-  labs(title = paste("GC and ODI for Group"))
+  labs(title = paste("GC and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
-
 
 
 ```{r}
