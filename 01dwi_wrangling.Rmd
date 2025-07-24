@@ -483,10 +483,11 @@ ggseg(.data = brainmap_HCP,
   theme_void() +
   labs(title = paste("Absolute GSCor using HCP"), fill=paste("GSCorr"))
 ```
-GLASSER ANALYSIS
----------------
+
 
 AGE- NODDI
+--------------
+Glasser
 ```{r}
  # Top 10 strongest NDI correlations
 age_noddi_cor_Glasser = df_Glasser %>%
@@ -543,6 +544,46 @@ ggseg(.data = age_noddi_cor_Glasser,
   theme_void() +
   labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
+
+```{r}
+#density plot
+ggplot(age_noddi_cor_Glasser, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  coord_flip() +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  ) +
+  geom_vline(aes(xintercept=mean(age_icvf_cor)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title=paste("NDI AGE Correlations"), y=paste("Estimated Probability Density"))
+
+ggplot(age_noddi_cor_Glasser, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
+  geom_density_ridges_gradient()+
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  coord_flip() +
+  theme_classic() +
+  geom_vline(aes(xintercept=mean(age_od_cor)),
+            color="blue", linetype="dashed", size=1) +
+  labs(title=paste("ODI AGE Correlations"), y=paste("Estimated Probability Density")) +
+    theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  )
+```
+
 ```{r}
 
 ggplot(df_Glasser%>%filter(Node=="Right_p9-46v"), aes(x = age_at_mri, y = icvf_mean)) +
@@ -587,6 +628,21 @@ ggplot(df_Glasser%>%filter(Node=="Left_FEF"), aes(x = age_at_mri, y = icvf_mean)
   labs(title=paste("Left FEF"))
 ```
 ```{r}
+ggplot(df_Glasser%>%filter(Node=="Right_V1"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Right V1"))
+ggplot(df_Glasser%>%filter(Node=="Left_V1"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Left V1"))
+```
+
+```{r}
 ggplot(df_Glasser%>%filter(Node=="Right_PGi"), aes(x = age_at_mri, y = od_mean)) +
   geom_point() +
   #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
@@ -601,11 +657,53 @@ ggplot(df_Glasser%>%filter(Node=="Left_PGi"), aes(x = age_at_mri, y = od_mean)) 
   labs(title=paste("Left PGi"))
 ```
 
+HCP
+```{r}
+age_noddi_cor_HCP = df_HCP %>%
+  group_by(Node) %>%
+  summarize(age_icvf_cor = cor(age_at_mri, icvf_mean, method = "spearman",use="na.or.complete" ), 
+            age_od_cor = cor(age_at_mri, od_mean, method = "spearman", use="na.or.complete")) %>%
+  rename(label=Node) 
+age_noddi_cor_HCP$label= age_noddi_cor_HCP$label %>% tolower() %>%
+  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
+  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
+  str_replace("(.*)_Right", "Right-\\1") %>%
+  str_replace("(.*)_Left","Left-\\1") %>%
+  str_replace("_Stem", "-Stem") %>%
+  str_replace("Diencephalon_Ventral", "VentralDC") %>%
+  str_replace("Thalamus", "Thalamus-Proper") 
+ 
+```
+```{r}
+ggseg(.data = age_noddi_cor_HCP,
+      atlas = aseg,
+      mapping = aes(fill= age_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = age_noddi_cor_HCP,
+      atlas = aseg,
+      mapping = aes(fill= age_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
+```
 ```{r}
 #density plot
-ggplot(age_noddi_cor_Glasser, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
+ggplot(age_noddi_cor_HCP, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
   geom_density_ridges_gradient()+
-  scale_fill_gradient2(
+ scale_fill_gradient2(
     low="blue",
     mid="white",
     high="red",
@@ -621,7 +719,7 @@ ggplot(age_noddi_cor_Glasser, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
             color="blue", linetype="dashed", size=1) +
   labs(title=paste("NDI AGE Correlations"), y=paste("Estimated Probability Density"))
 
-ggplot(age_noddi_cor_Glasser, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
+ggplot(age_noddi_cor_HCP, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
   geom_density_ridges_gradient()+
   scale_fill_gradient2(
     low="blue",
@@ -640,7 +738,38 @@ ggplot(age_noddi_cor_Glasser, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
   )
 ```
 
+```{r}
+ggplot(df_HCP%>%filter(Node=="HIPPOCAMPUS_RIGHT"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Right Hippocampus"))
+ggplot(df_HCP%>%filter(Node=="HIPPOCAMPUS_LEFT"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Left Hippocampus"))
+
+ggplot(df_HCP%>%filter(Node=="AMYGDALA_RIGHT"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Right Amygdala"))
+ggplot(df_HCP%>%filter(Node=="AMYGDALA_LEFT"), aes(x = age_at_mri, y = icvf_mean)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
+  labs(title=paste("Left Amygdala"))
+```
+
+
 NODDI and rsfMRI 
+---------------------
+Glasser
 ```{r}
 glasser_rsfmri_noddi_cor = df_Glasser %>%
   group_by(Node) %>%
@@ -829,92 +958,7 @@ ggseg(.data = glasser_rsfmri_noddi_cor,
   labs(title = paste("GC and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
 
------------------------------------------
-HCP ANALYSIS
------------------------------------------
-AGE- NODDI
-```{r}
-age_noddi_cor_HCP = df_HCP %>%
-  group_by(Node) %>%
-  summarize(age_icvf_cor = cor(age_at_mri, icvf_mean, method = "spearman",use="na.or.complete" ), 
-            age_od_cor = cor(age_at_mri, od_mean, method = "spearman", use="na.or.complete")) %>%
-  rename(label=Node) 
-age_noddi_cor_HCP$label= age_noddi_cor_HCP$label %>% tolower() %>%
-  str_replace("^[a-z]", ~str_to_upper(.x)) %>%
-  str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
-  str_replace("(.*)_Right", "Right-\\1") %>%
-  str_replace("(.*)_Left","Left-\\1") %>%
-  str_replace("_Stem", "-Stem") %>%
-  str_replace("Diencephalon_Ventral", "VentralDC") %>%
-  str_replace("Thalamus", "Thalamus-Proper") 
- 
-```
-```{r}
-ggseg(.data = age_noddi_cor_HCP,
-      atlas = aseg,
-      mapping = aes(fill= age_icvf_cor)) +
-  scale_fill_gradient2(
-    low="blue",
-    mid="white",
-    high="red",
-    midpoint=0
-  ) +
-  theme_void() +
-  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
-
-ggseg(.data = age_noddi_cor_HCP,
-      atlas = aseg,
-      mapping = aes(fill= age_od_cor)) +
-  scale_fill_gradient2(
-    low="blue",
-    mid="white",
-    high="red",
-    midpoint=0
-  ) +
-  theme_void() +
-  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
-```
-
-```{r}
-#density plot
-ggplot(age_noddi_cor_HCP, aes(x=age_icvf_cor, y=0, fill=after_stat(x))) +
-  geom_density_ridges_gradient()+
- scale_fill_gradient2(
-    low="blue",
-    mid="white",
-    high="red",
-    midpoint=0
-  ) +
-  coord_flip() +
-  theme_classic() +
-  theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14)
-  ) +
-  geom_vline(aes(xintercept=mean(age_icvf_cor)),
-            color="blue", linetype="dashed", size=1) +
-  labs(title=paste("NDI AGE Correlations"), y=paste("Estimated Probability Density"))
-
-ggplot(age_noddi_cor_HCP, aes(x=age_od_cor, y=0, fill=after_stat(x))) +
-  geom_density_ridges_gradient()+
-  scale_fill_gradient2(
-    low="blue",
-    mid="white",
-    high="red",
-    midpoint=0
-  ) +
-  coord_flip() +
-  theme_classic() +
-  geom_vline(aes(xintercept=mean(age_od_cor)),
-            color="blue", linetype="dashed", size=1) +
-  labs(title=paste("ODI AGE Correlations"), y=paste("Estimated Probability Density")) +
-    theme(
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_text(size = 14)
-  )
-```
-
-NODDI and rsfMRI 
+HCP
 ```{r}
 HCP_rsfmri_noddi_cor = df_HCP %>%
   group_by(Node) %>%
