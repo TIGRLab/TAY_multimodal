@@ -778,7 +778,11 @@ glasser_rsfmri_noddi_cor = df_Glasser %>%
             reho_icvf_cor = cor(ReHo, icvf_mean, use="na.or.complete"), 
             reho_od_cor = cor(ReHo, od_mean, use="na.or.complete"),
             GC_icvf_cor = cor(mean_GC, icvf_mean, use="na.or.complete"), 
-            GC_od_cor = cor(mean_GC, od_mean, use="na.or.complete")) %>%
+            GC_od_cor = cor(mean_GC, od_mean, use="na.or.complete"),
+            Abs_GC_icvf_cor = cor(Abs_GC, icvf_mean, use="na.or.complete"), 
+            Abs_GC_od_cor = cor(Abs_GC, od_mean, use="na.or.complete"),
+            Pos_GC_icvf_cor = cor(Pos_GC, icvf_mean, use="na.or.complete"), 
+            Pos_GC_od_cor = cor(Pos_GC, od_mean, use="na.or.complete")) %>%
   rename(label=Node) %>%
   mutate(label = str_replace(label, "Left", "lh_L") %>% 
            str_replace("Right", "rh_R"))
@@ -957,6 +961,53 @@ ggseg(.data = glasser_rsfmri_noddi_cor,
   theme_void() +
   labs(title = paste("GC and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
+```{r}
+ggseg(.data = glasser_rsfmri_noddi_cor,
+      atlas = glasser,
+      mapping = aes(fill= Abs_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GC and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = glasser_rsfmri_noddi_cor,
+      atlas = glasser,
+      mapping = aes(fill= Abs_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GC and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = glasser_rsfmri_noddi_cor,
+      atlas = glasser,
+      mapping = aes(fill= Pos_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GC and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = glasser_rsfmri_noddi_cor,
+      atlas = glasser,
+      mapping = aes(fill= Pos_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GC and ODI for Group"), fill=paste("Spearman Correlation"))
+```
 
 HCP
 ```{r}
@@ -967,7 +1018,11 @@ HCP_rsfmri_noddi_cor = df_HCP %>%
             reho_icvf_cor = cor(ReHo, icvf_mean, use="na.or.complete"), 
             reho_od_cor = cor(ReHo, od_mean, use="na.or.complete"),
             GC_icvf_cor = cor(mean_GC, icvf_mean, use="na.or.complete"), 
-            GC_od_cor = cor(mean_GC, od_mean, use="na.or.complete")) %>%
+            GC_od_cor = cor(mean_GC, od_mean, use="na.or.complete"),
+            Abs_GC_icvf_cor = cor(Abs_GC, icvf_mean, use="na.or.complete"), 
+            Abs_GC_od_cor = cor(Abs_GC, od_mean, use="na.or.complete"),
+            Pos_GC_icvf_cor = cor(Pos_GC, icvf_mean, use="na.or.complete"), 
+            Pos_GC_od_cor = cor(Pos_GC, od_mean, use="na.or.complete")) %>%
   rename(label=Node) 
 
 HCP_rsfmri_noddi_cor$label = HCP_rsfmri_noddi_cor$label %>% tolower() %>%
@@ -1154,6 +1209,53 @@ ggseg(.data = HCP_rsfmri_noddi_cor,
   theme_void() +
   labs(title = paste("GC and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
+```{r}
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= Abs_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GC and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= Abs_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GC and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= Pos_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GC and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_rsfmri_noddi_cor,
+      atlas = aseg,
+      mapping = aes(fill= Pos_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GC and ODI for Group"), fill=paste("Spearman Correlation"))
+```
 partial correlation - regressing out age
 -------------------------------------------
 
@@ -1198,6 +1300,22 @@ glasser_partial_cor <- df_Glasser %>%
     GC_od_cor = {
       temp <- na.omit(data.frame(mean_GC, od_mean, age_at_mri))
       safe_pcor(temp$mean_GC, temp$od_mean, temp$age_at_mri)
+    },
+     Abs_GC_icvf_cor = {
+      temp <- na.omit(data.frame(Abs_GC, icvf_mean, age_at_mri))
+      safe_pcor(temp$Abs_GC, temp$icvf_mean, temp$age_at_mri)
+    },
+    Abs_GC_od_cor = {
+      temp <- na.omit(data.frame(Abs_GC, od_mean, age_at_mri))
+      safe_pcor(temp$Abs_GC, temp$od_mean, temp$age_at_mri)
+    },
+     Pos_GC_icvf_cor = {
+      temp <- na.omit(data.frame(Pos_GC, icvf_mean, age_at_mri))
+      safe_pcor(temp$Pos_GC, temp$icvf_mean, temp$age_at_mri)
+    },
+    Pos_GC_od_cor = {
+      temp <- na.omit(data.frame(Pos_GC, od_mean, age_at_mri))
+      safe_pcor(temp$Pos_GC, temp$od_mean, temp$age_at_mri)
     }
   ) 
 
@@ -1240,7 +1358,6 @@ ggseg(.data = glasser_partial_cor,
   ) +
   theme_void() +
   labs(title = paste("ReHo and NDI for Group"), fill=paste("Spearman Correlation"))
-
 ggseg(.data = glasser_partial_cor,
       atlas = glasser,
       mapping = aes(fill= reho_od_cor)) +
@@ -1253,6 +1370,8 @@ ggseg(.data = glasser_partial_cor,
   theme_void() +
   labs(title = paste("ReHo and ODI for Group"), fill=paste("Spearman Correlation"))
 
+```
+```{r}
 ggseg(.data = glasser_partial_cor,
       atlas = glasser,
       mapping = aes(fill= GC_icvf_cor)) +
@@ -1266,7 +1385,7 @@ ggseg(.data = glasser_partial_cor,
   labs(title = paste("GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = glasser_partial_cor,
       atlas = glasser,
-      mapping = aes(fill= alff_icvf_cor)) +
+      mapping = aes(fill= GC_od_cor)) +
   scale_fill_gradient2(
     low="blue",
     mid="white",
@@ -1275,7 +1394,54 @@ ggseg(.data = glasser_partial_cor,
   ) +
   theme_void() +
   labs(title = paste("GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = glasser_partial_cor,
+      atlas = glasser,
+      mapping = aes(fill= Pos_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = glasser_partial_cor,
+      atlas = glasser,
+      mapping = aes(fill= Pos_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = glasser_partial_cor,
+      atlas = glasser,
+      mapping = aes(fill= Abs_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = glasser_partial_cor,
+      atlas = glasser,
+      mapping = aes(fill= Abs_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
+
 
 ```{r}
 #density plot
@@ -1416,6 +1582,22 @@ HCP_partial_cor <- df_HCP %>%
     GC_od_cor = {
       temp <- na.omit(data.frame(mean_GC, od_mean, age_at_mri))
       safe_pcor(temp$mean_GC, temp$od_mean, temp$age_at_mri)
+    },
+     Pos_GC_icvf_cor = {
+      temp <- na.omit(data.frame(Pos_GC, icvf_mean, age_at_mri))
+      safe_pcor(temp$Pos_GC, temp$icvf_mean, temp$age_at_mri)
+    },
+    Pos_GC_od_cor = {
+      temp <- na.omit(data.frame(Pos_GC, od_mean, age_at_mri))
+      safe_pcor(temp$Pos_GC, temp$od_mean, temp$age_at_mri)
+    },
+     Abs_GC_icvf_cor = {
+      temp <- na.omit(data.frame(Abs_GC, icvf_mean, age_at_mri))
+      safe_pcor(temp$Abs_GC, temp$icvf_mean, temp$age_at_mri)
+    },
+    Abs_GC_od_cor = {
+      temp <- na.omit(data.frame(Abs_GC, od_mean, age_at_mri))
+      safe_pcor(temp$Abs_GC, temp$od_mean, temp$age_at_mri)
     }
   ) %>% rename(label=Node)
 
@@ -1475,7 +1657,8 @@ ggseg(.data = HCP_partial_cor,
   ) +
   theme_void() +
   labs(title = paste("ReHo and ODI for Group"), fill=paste("Spearman Correlation"))
-
+```
+```{r}
 ggseg(.data = HCP_partial_cor,
       atlas = aseg,
       mapping = aes(fill= GC_icvf_cor)) +
@@ -1489,7 +1672,7 @@ ggseg(.data = HCP_partial_cor,
   labs(title = paste("GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
 ggseg(.data = HCP_partial_cor,
       atlas = aseg,
-      mapping = aes(fill= alff_icvf_cor)) +
+      mapping = aes(fill= GC_od_cor)) +
   scale_fill_gradient2(
     low="blue",
     mid="white",
@@ -1498,6 +1681,52 @@ ggseg(.data = HCP_partial_cor,
   ) +
   theme_void() +
   labs(title = paste("GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = HCP_partial_cor,
+      atlas = aseg,
+      mapping = aes(fill= Pos_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_partial_cor,
+      atlas = aseg,
+      mapping = aes(fill= Pos_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Positive GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
+
+ggseg(.data = HCP_partial_cor,
+      atlas = aseg,
+      mapping = aes(fill= Abs_GC_icvf_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GSCorr and NDI for Group"), fill=paste("Spearman Correlation"))
+ggseg(.data = HCP_partial_cor,
+      atlas = aseg,
+      mapping = aes(fill= Abs_GC_od_cor)) +
+  scale_fill_gradient2(
+    low="blue",
+    mid="white",
+    high="red",
+    midpoint=0
+  ) +
+  theme_void() +
+  labs(title = paste("Absolute GSCorr and ODI for Group"), fill=paste("Spearman Correlation"))
 ```
 ```{r}
 #density plot
