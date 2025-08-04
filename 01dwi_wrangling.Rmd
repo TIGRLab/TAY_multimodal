@@ -72,31 +72,22 @@ age_df = read_delim("/scratch/jwong/tay_pet_age.csv", delim = ",", show_col_type
 concatenate three different parcellations for alff, reho, coverage and motion
 ```{r}
 alff_xcpd_4S156Parcels_results=wrangle_data(path_xcpd, "4S156Parcels_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
-
 alff_xcpd_HCP_results=wrangle_data(path_xcpd, "HCP_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
-
 alff_xcpd_Glasser_results=wrangle_data(path_xcpd, "Glasser_stat-alff_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ALFF") %>% filter(task=="rest")
-```
-```{r}
+
 reHo_xcpd_4S156Parcels_results = wrangle_data(path_xcpd,"4S156Parcels_stat-reho_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
-
 reHo_xcpd_HCP_results = wrangle_data(path_xcpd,"HCP_stat-reho_bold.tsv")%>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
-
 reHo_xcpd_Glasser_results = wrangle_data(path_xcpd,"Glasser_stat-reho_bold.tsv") %>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="ReHo") %>% filter(task=="rest")
-```
-```{r}
-coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
 
+coverage_xcpd_HCP_results= wrangle_data(path_xcpd,"HCP_stat-coverage_bold.tsv")
 coverage_xcpd_Glasser_results= wrangle_data(path_xcpd,"Glasser_stat-coverage_bold.tsv") %>%
   mutate(Node = str_replace(Node, "L_", "Left_") %>% 
            str_replace("R_", "Right_") %>%
            str_replace("_ROI", "")
         ) %>%
   filter(task=="rest")
-
 coverage_xcpd_4S156Parcels_results= wrangle_data(path_xcpd,"4S156Parcels_stat-coverage_bold.tsv") %>% filter(task=="rest")
-```
-```{r}
+
 motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv") %>% subset(select=c(subject,task,session,run,mean_fd)) %>% filter(task=="rest")
 ```
 gscorr QC
@@ -401,42 +392,128 @@ ggseg(.data = brainmap_Glasser,
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("ReHo using Glasser"))
-ggseg(.data = brainmap_Glasser,
-      atlas = glasser,
-      mapping = aes(fill= mean_GC)) +
-  scale_fill_viridis_c() +
-  theme_void() +
-  labs(title = paste("GSCor using Glasser"))
 ```
 ```{r}
 ggseg(.data = brainmap_Glasser,
       atlas = glasser,
-      mapping = aes(fill= Pos_GC)) +
-  scale_fill_viridis_c() +
+      mapping = aes(fill= mean_GC),
+      position="stacked") +
+  scale_fill_gradientn(colours = c(
+  "#000000",  # black
+  "#660033",  # purple2
+  "#33334C",  # blue_videen11
+  "#4C4C7F",  # blue_videen9
+  "#7F7FCC",  # blue_videen7
+  "#00FF00",  # green
+  "#10B010",  # limegreen
+  "#FFFF00",  # yellow
+  "#FF9900",  # orange-yellow
+  "#FF6900",  # orange
+  "#FF0000")) + 
   theme_void() +
-  labs(title = paste("Positive GSCor using Glasser"))
+  theme(legend.position = "bottom",
+        plot.title=element_text(hjust=0.5, face="bold"),
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5, face="bold")) +
+  labs(title = paste("Group-Averaged GSCor"), fill=paste("GSCor"))
+
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= Pos_GC)) +
+  scale_fill_gradientn(colours = c(
+  "#000000",  # black
+  "#660033",  # purple2
+  "#33334C",  # blue_videen11
+  "#4C4C7F",  # blue_videen9
+  "#7F7FCC",  # blue_videen7
+  "#00FF00",  # green
+  "#10B010",  # limegreen
+  "#FFFF00",  # yellow
+  "#FF9900",  # orange-yellow
+  "#FF6900",  # orange
+  "#FF0000")) +
+  theme_void() +
+  labs(title = paste("Positive GSCor using Glasser"), fill=paste("Positive GSCor"))
 ggseg(.data = brainmap_Glasser,
       atlas = glasser,
       mapping = aes(fill= Abs_GC)) +
   scale_fill_viridis_c() +
   theme_void() +
   labs(title = paste("Absolute GSCor using Glasser"))
-
+```
+```{r}
 ggseg(.data = brainmap_Glasser,
       atlas = glasser,
       mapping = aes(fill= icvf_mean),
       position="stacked") +
-  scale_fill_viridis_c() +
+  scale_fill_distiller(palette = "Spectral")+ 
   theme_void() +
-  labs(title = paste("NDI using Glasser"))
+  theme(legend.position = "bottom",
+        plot.title=element_text(hjust=0.5, face="bold"),
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5)) +
+  labs(title = paste("Group-Averaged NDI Map"), fill=paste("NDI"))
 ggseg(.data = brainmap_Glasser,
       atlas = glasser,
       mapping = aes(fill= od_mean),
       position="stacked") +
-  scale_fill_viridis_c() +
+  scale_fill_distiller(palette = "Spectral") +
   theme_void() +
-  labs(title = paste("ODI using Glasser"))
+  theme(legend.position = "bottom",
+        plot.title=element_text(hjust=0.5, face="bold"),
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5)) +
+  labs(title = paste("Group-Averaged ODI Map"), fill=paste("ODI"))
 ```
+```{r}
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= icvf_mean),
+      position="stacked") +
+  scale_fill_gradientn(colours = c(
+  "#000000",  # black
+  "#660033",  # purple2
+  "#33334C",  # blue_videen11
+  "#4C4C7F",  # blue_videen9
+  "#7F7FCC",  # blue_videen7
+  "#00FF00",  # green
+  "#10B010",  # limegreen
+  "#FFFF00",  # yellow
+  "#FF9900",  # orange-yellow
+  "#FF6900",  # orange
+  "#FF0000")) +  # red)) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.title=element_text(hjust=0.5, face="bold"),
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5)) +
+  labs(title = paste("Group-Averaged NDI Map"), fill=paste("NDI"))
+
+ggseg(.data = brainmap_Glasser,
+      atlas = glasser,
+      mapping = aes(fill= od_mean),
+      position="stacked") +
+  scale_fill_gradientn(colours = c(
+  "#000000",  # black
+  "#660033",  # purple2
+  "#33334C",  # blue_videen11
+  "#4C4C7F",  # blue_videen9
+  "#7F7FCC",  # blue_videen7
+  "#00FF00",  # green
+  "#10B010",  # limegreen
+  "#FFFF00",  # yellow
+  "#FF9900",  # orange-yellow
+  "#FF6900",  # orange
+  "#FF0000")) +  # red)) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.title=element_text(hjust=0.5, face="bold"),
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5)) +
+  labs(title = paste("Group-Averaged ODI Map"), fill=paste("ODI"))
+```
+
+
 ```{r}
 ggseg(.data = brainmap_HCP,
       atlas = aseg,
@@ -489,29 +566,6 @@ AGE- NODDI
 --------------
 Glasser
 ```{r}
- # Top 10 strongest NDI correlations
-age_noddi_cor_Glasser = df_Glasser %>%
-  group_by(Node) %>%
-  summarize(correlate = cor(age_at_mri, icvf_mean, method = "spearman")) %>%
-  arrange(desc(abs(correlate))) %>%
-  slice_head(n = 10)
-ggplot(age_noddi_cor_Glasser, aes(x = reorder(Node, correlate), y = correlate)) +
-  geom_col() +
-  coord_flip() +
-  labs(title = "Top 10 Age-NDI Region Correlations", y = "Spearman Correlation", x = "")
-
-age_noddi_cor_Glasser = df_Glasser %>%
-  group_by(Node) %>%
-  summarize(correlate = cor(age_at_mri, od_mean, method = "spearman")) %>%
-  arrange(desc(abs(correlate))) %>%
-  slice_head(n = 10)
-ggplot(age_noddi_cor_Glasser, aes(x = reorder(Node, correlate), y = correlate)) +
-  geom_col() +
-  coord_flip() +
-  labs(title = "Top 10 Age-ODI Region Correlations", y = "Spearman Correlation", x = "")
-```
-
-```{r}
 age_noddi_cor_Glasser = df_Glasser %>%
   group_by(Node) %>%
   summarize(age_icvf_cor = cor(age_at_mri, icvf_mean, method = "spearman", use="na.or.complete"), 
@@ -530,7 +584,8 @@ ggseg(.data = age_noddi_cor_Glasser,
     midpoint=0
   ) +
   theme_void() +
-  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
+  labs(title = paste("Group Averaged Age-NDI Correlations"), fill=paste("Spearman Correlation")) +
+  theme(plot.title = element_text(face="bold"))
 
 ggseg(.data = age_noddi_cor_Glasser,
       atlas = glasser,
@@ -542,7 +597,8 @@ ggseg(.data = age_noddi_cor_Glasser,
     midpoint=0
   ) +
   theme_void() +
-  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
+  labs(title = paste("Group Averaged Age-ODI Correlations"), fill=paste("Spearman Correlation")) +
+  theme(plot.title=element_text(face="bold"))
 ```
 
 ```{r}
@@ -599,27 +655,14 @@ ggplot(df_Glasser%>%filter(Node=="Left_p9-46v"), aes(x = age_at_mri, y = icvf_me
   #stat_regline_equation(label.x = 1, label.y = 0.8)  +
   labs(title=paste("Left DLPFC"))
 
-ggplot(df_Glasser%>%filter(Node=="Right_p9-46v"), aes(x = age_at_mri, y = od_mean)) +
-  geom_point() +
-  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
-  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
-  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Right DLPFC"))
-ggplot(df_Glasser%>%filter(Node=="Left_p9-46v"), aes(x = age_at_mri, y = od_mean)) +
-  geom_point() +
-  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
-  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
-  #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Left DLPFC"))
-
 ```
 ```{r}
 ggplot(df_Glasser%>%filter(Node=="Right_FEF"), aes(x = age_at_mri, y = icvf_mean)) +
   geom_point() +
-  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
+  geom_smooth(method = "lm", se = TRUE, color = "red") +  
   stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
   #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Right FEF"))
+  labs(title=paste("Right Frontal Eye Field"), x=paste("Age"), y=paste("NDI"))
 ggplot(df_Glasser%>%filter(Node=="Left_FEF"), aes(x = age_at_mri, y = icvf_mean)) +
   geom_point() +
   #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
@@ -685,7 +728,8 @@ ggseg(.data = age_noddi_cor_HCP,
     midpoint=0
   ) +
   theme_void() +
-  labs(title = paste("Age and NDI for Group"), fill=paste("Spearman Correlation"))
+  theme(plot.title=element_text(face="bold")) +
+  labs(title = paste("Group Averaged Age-NDI Correlations"), fill=paste("Spearman Correlation"))
 
 ggseg(.data = age_noddi_cor_HCP,
       atlas = aseg,
@@ -697,7 +741,8 @@ ggseg(.data = age_noddi_cor_HCP,
     midpoint=0
   ) +
   theme_void() +
-  labs(title = paste("Age and ODI for Group"), fill=paste("Spearman Correlation"))
+  theme(plot.title=element_text(face="bold")) +
+  labs(title = paste("Group Averaged Age-ODI Correlations"), fill=paste("Spearman Correlation"))
 ```
 ```{r}
 #density plot
