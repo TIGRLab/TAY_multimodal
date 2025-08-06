@@ -660,15 +660,21 @@ ggplot(df_Glasser%>%filter(Node=="Left_p9-46v"), aes(x = age_at_mri, y = icvf_me
 ggplot(df_Glasser%>%filter(Node=="Right_FEF"), aes(x = age_at_mri, y = icvf_mean)) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE, color = "red") +  
-  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  #stat_cor(method = "spearman", label.x = 16, label.y =0.275) +  
   #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Right Frontal Eye Field"), x=paste("Age"), y=paste("NDI"))
+  labs(title=paste("Right Frontal Eye Field"), x=paste("Age"), y=paste("NDI")) +
+  theme(plot.title=element_text(face="bold", size=20),     
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 18, face="bold"),
+        axis.title.y = element_text(size = 18, face="bold"))
+
 ggplot(df_Glasser%>%filter(Node=="Left_FEF"), aes(x = age_at_mri, y = icvf_mean)) +
   geom_point() +
   #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
   stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
   #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Left FEF"))
+  labs(title=paste("Left FEF")) 
 ```
 ```{r}
 ggplot(df_Glasser%>%filter(Node=="Right_V1"), aes(x = age_at_mri, y = icvf_mean)) +
@@ -688,10 +694,16 @@ ggplot(df_Glasser%>%filter(Node=="Left_V1"), aes(x = age_at_mri, y = icvf_mean))
 ```{r}
 ggplot(df_Glasser%>%filter(Node=="Right_PGi"), aes(x = age_at_mri, y = od_mean)) +
   geom_point() +
-  #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
-  stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
+  ylim(0.32, NA)+
+  geom_smooth(method = "lm", se = TRUE, color = "red") +  
+  #stat_cor(method = "spearman", label.x = 16, label.y =0.3) +  
   #stat_regline_equation(label.x = 1, label.y = 0.8)  +
-  labs(title=paste("Right PGi"))
+  labs(title=paste("Right PGi"), x=paste("Age"), y=paste("ODI")) +
+  theme(plot.title=element_text(face="bold", size=20),     
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 18, face="bold"),
+        axis.title.y = element_text(size = 18, face="bold"))
 ggplot(df_Glasser%>%filter(Node=="Left_PGi"), aes(x = age_at_mri, y = od_mean)) +
   geom_point() +
   #geom_smooth(method = "lm", se = TRUE, color = "blue") +  
@@ -728,7 +740,10 @@ ggseg(.data = age_noddi_cor_HCP,
     midpoint=0
   ) +
   theme_void() +
-  theme(plot.title=element_text(face="bold")) +
+  theme(plot.title=element_text(face="bold"),
+        legend.position="bottom",
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5, face="bold")) +
   labs(title = paste("Group Averaged Age-NDI Correlations"), fill=paste("Spearman Correlation"))
 
 ggseg(.data = age_noddi_cor_HCP,
@@ -741,7 +756,10 @@ ggseg(.data = age_noddi_cor_HCP,
     midpoint=0
   ) +
   theme_void() +
-  theme(plot.title=element_text(face="bold")) +
+  theme(plot.title=element_text(face="bold"),
+        legend.position="bottom",
+        legend.title.position = "top",
+        legend.title=element_text(hjust=0.5, face="bold")) +
   labs(title = paste("Group Averaged Age-ODI Correlations"), fill=paste("Spearman Correlation"))
 ```
 ```{r}
