@@ -56,6 +56,21 @@ Diffusion Metrics (NODDI - NDI, ODI, free water)
     - More updated review: https://www.sciencedirect.com/science/article/pii/S1053811922001161?via%3Dihub
  - additional calculation in python (using BrainSpace package) to calulate it - Ju-Chi has scripts
 
+ - To get new templates (on a lab computer - done by erin):
+ - ``` module load connectome_workbench; wb_command -cifti-parcellate /scratch/edickie/parcellate_gradients/hcp.embed.dscalar.nii /scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/atlases/atlas-Glasser/atlas-Glasser_space-fsLR_den-91k_dseg.dlabel.nii COLUMN /scratch/edickie/parcellate_gradients/atlas-Glasser_space-fsLR_den-91k_desc-Margulies2016_gradients.pscalar.nii"```
+ - getting a jupyter env on scinet (in the scinet terminal)
+
+```sh
+module load python/
+cd $SCRATCH
+virtualenv --system-site-packages brainspace_2025
+source brainspace_2025/bin/activate
+pip install brainspace
+venv2jup   
+```
+
+(then open up jupyter on demand and you should see "brainspace_2025" as an option
+
 ### notes on gradients from meeting with Ju-Chi
  - Ju-Chi's gradient calculating code from paper: `/scratch/jcyu/spin_gradients/code/3.3_spins_gradiant.py`
    - inside this script - the `calc_aligned_gradient()` function is the most important  
