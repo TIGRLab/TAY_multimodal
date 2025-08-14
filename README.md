@@ -1,8 +1,47 @@
 # TAY_multimodal
 
-This github project will house code related to Anisha Miah's summer project combining/comparing DWI NODDI and rsfMRI metrics from TAY data.
+fMRI Date Processed: 06-01-25 to 06-11-25
+NODDI Date Processed: 06-09-25 to 07-12-25
 
-Starte June 2025
+Dataset:
+ StudyInfo: combining/comparing DWI NODDI and rsfMRI metrics from TAY data, as well as DWI NODDI and age.
+ Dataset: TAY CAMH Cohort Study, 54 participants that completed the [18F]SynVesT-1 PET substudy (aged 16-24)
+   Outputs were derived from TIGRLab/SCanD_Project v2.0.0
+       - NODDI outputs used QSIPREP for preprocessing and AMICO NODDI model to derive NDI and ODI values
+       - fMRI outputs used fMRIprep fit for preprocessing and used xcp_d outputs
+
+Contact:
+ Principal Investigator: Erin Dickie
+ Primary: Anisha Miah - anisha.miah@utoronto.ca / anishamiah09@gmail.com
+ Other: Christin Schifani
+
+System:
+ Dependencies:
+    library(ggcorplot)
+    library(ggseg)
+    library(ggplot2)
+    library(ggridges)
+    library(ggsegGlasser)
+    library(ppcor)
+ RanFrom: SciNet
+
+Commands/Scripts:
+  Atlases used: HCP MMP (Glasser) and HCP subcortical (aseg)
+  Paths:
+     fMRI outputs: path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
+     DWI NODDI outputs: path_noddi = "/projects/jwong/qsiprep/output/noddi_extract/ciftify_parcellations/"
+     Age at time of MRI: age_df = "/scratch/jwong/tay_pet_age.csv"
+  Functions:
+    wrangle_data(path, pattern) concatenates subject files into one dataframe
+    calculate_GC(dataframe, string) calcualtes postitive, absolute and mean global signal correlation and can be customized for individual or group dataframe based on string input
+    matrix_QC(dataframe, run_num, title_string) creates a matrix between subject to subject ....
+
+Quality Control
+ Primary: Anisha Miah
+- one subject removed from NODDI outputs due to misalignment of NDI/ODDI map with parcellations
+
+Data Requests/Publications: N/A
+
 
 For each metric, we need to:
 
