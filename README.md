@@ -23,7 +23,7 @@ System:
     library(ggridges)
     library(ggsegGlasser)
     library(ppcor)
- - RanFrom: SciNet
+ - RanFrom: SCC
 
 Commands/Scripts:
   - Scripts located in 01dwi_wrangling.Rmd
