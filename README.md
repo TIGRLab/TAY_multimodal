@@ -17,12 +17,12 @@ Contact:
 
 System:
  - Dependencies:
-    library(ggcorplot)
-    library(ggseg)
-    library(ggplot2)
-    library(ggridges)
-    library(ggsegGlasser)
-    library(ppcor)
+    - library(ggcorplot)
+    - library(ggseg)
+    - library(ggplot2)
+    - library(ggridges)
+    - library(ggsegGlasser)
+    - library(ppcor)
  - RanFrom: SCC
 
 Commands/Scripts:
