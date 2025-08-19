@@ -1,6 +1,7 @@
 # TAY_multimodal
 
 fMRI Date Processed: 06-01-25 to 06-11-25
+
 NODDI Date Processed: 06-09-25 to 07-12-25
 
 Dataset:
@@ -47,7 +48,9 @@ Commands/Scripts:
 
 Quality Control:
  - Primary: Anisha Miah 
-   - one subject removed from NODDI outputs due to misalignment of NDI/ODDI map with parcellations
+   - NODDI QC file with comments can be found in: NODDI_QC.csv
+     - sub-CMH00000125 removed from NODDI outputs due to misalignment of NDI/ODDI map with parcellations
+   - fMRI QC completed on: http://srv-dashboard.camhres.ca/study/TAY/pipeline/anisha_2025/niviz-rater 
 
 Data Requests/Publications: N/A
 
