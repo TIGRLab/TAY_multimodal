@@ -18,25 +18,29 @@ Contact:
 
 System:
  - Dependencies:
-    - library(ggcorplot)
-    - library(ggseg)
-    - library(ggplot2)
-    - library(ggridges)
-    - library(ggsegGlasser)
-    - library(ppcor)
- - RanFrom: SCC
+```
+    library(ggcorplot)
+    library(ggseg)
+    library(ggplot2)
+    library(ggridges)
+    library(ggsegGlasser)
+    library(ppcor)
+```
+ - RanFrom: Kimel
 
 Commands/Scripts:
   - Scripts located in 01dwi_wrangling.Rmd
   - Atlases used: HCP MMP (Glasser) and HCP subcortical (aseg)
   - Paths:
-     - fMRI outputs: path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
-     - DWI NODDI outputs: path_noddi = "/projects/jwong/qsiprep/output/noddi_extract/ciftify_parcellations/"
-     - Age at time of MRI: age_df = "/scratch/jwong/tay_pet_age.csv"
+     - fMRI outputs: `path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"`
+     - DWI NODDI outputs: `path_noddi = "/projects/jwong/qsiprep/output/noddi_extract/ciftify_parcellations/"`
+     - Age at time of MRI: `age_df = "/scratch/jwong/tay_pet_age.csv"`
   - Functions made:
-    - wrangle_data(path, pattern) concatenates subject files into one dataframe
-    - calculate_GC(dataframe, string) calcualtes postitive, absolute and mean global signal correlation and can be customized for individual or group dataframe based on string input
-    - matrix_QC(dataframe, run_num, title_string) creates a matrix between subject to subject for global signal correlation between atlases
+    ```
+    wrangle_data(path, pattern) #concatenates subject files into one dataframe
+    calculate_GC(dataframe, string) #calcualtes postitive, absolute and mean global signal correlation and can be customized for individual or group dataframe based on string input
+    matrix_QC(dataframe, run_num, title_string) #creates a matrix between subject to subject for global signal correlation between atlases
+    ```
   - First section (lines 39-220) involves concatenating all age and fMRI metrics. Also includes brainmaps of ten random subjects global signal correlation maps, alonside group brain maps
   - lines 222-284: looks at quality controlling global signal correlation by looking at subject to subject matrices, as well as graphing timeseries of each ROI of some random number of patients
   - lines 285-315: concatenating all NODDI outputs between subjects
@@ -48,63 +52,64 @@ Commands/Scripts:
 
 Quality Control:
  - Primary: Anisha Miah 
-   - NODDI QC file with comments can be found in: NODDI_QC.csv
+   - Visual NODDI QC file with comments can be found in: NODDI_QC.csv
      - sub-CMH00000125 removed from NODDI outputs due to misalignment of NDI/ODDI map with parcellations
-   - fMRI QC completed on: http://srv-dashboard.camhres.ca/study/TAY/pipeline/anisha_2025/niviz-rater 
+   - Visual fMRI QC completed on: http://srv-dashboard.camhres.ca/study/TAY/pipeline/anisha_2025/niviz-rater 
 
 Data Requests/Publications: N/A
 
+# GOALS DURING PROJECT
 For each metric, we need to:
 
-1. Read literature and discuss to understand the metric
+1. Read literature and discuss to understand the metric 
 2. build/clean up scripts ot extract the metric
 3. help design QA process and QC the metric related pipelines.
 
 # Another concept is parcallations
 
- - read lit to understand what they are
- - understand how they are represented in BIDS derivatives outputs
+ - read lit to understand what they are [x]
+ - understand how they are represented in BIDS derivatives outputs [x]
 
 Diffusion Metrics (NODDI - NDI, ODI, free water)
-- reading list from Christin
+- reading list from Christin [x]
 - extracted pipeline outputs - `/archive/data/TAY/pipelines/versioned_outputs/pet_subsample/`
-- need to understand these outputs and concanate group outputs by atlas
-- qc files exists but QC process not set
+- need to understand these outputs and concanate group outputs by atlas [x]
+- qc files exists but QC process not set 
 -   qc should go through qsiprep both ways:
 -    https://imaging-genetics.camh.ca/documentation/#/resources/Qsiprep-QC-guide
 -    add also inspect the .html pages in the qsiprep folder that describe the workflow
 
 # rsfMRI metrics
 
-- Literature: History of rsfMRI - good overview to start
-- XCP: https://pmc.ncbi.nlm.nih.gov/articles/PMC10690221/
-- understand fMRIPREP QC and rsfMRI QC metrics
+- Literature: History of rsfMRI - good overview to start [x]
+- XCP: https://pmc.ncbi.nlm.nih.gov/articles/PMC10690221/ [x]
+- understand fMRIPREP QC and rsfMRI QC metrics [x]
  - example completed pipeline outputs `/scratch/galinejad/ScanD/SHARED_FOLDER_25/`
- - 
+   
 ## fALFF/ALFF + reHO (will discuss with Colin)
 
- - literature: (https://pmc.ncbi.nlm.nih.gov/articles/PMC11245004/#S2)
- - extraction - all done by XCP-D (which is stage-3.sh of TIGR_BIDS)
- -   learn how to understand output to find fALFF outputs
- -   learn how to concatenate across subjects from the output
- -   also grab coverage files to incorporate into QC
- -   understand/do visual qc of XCP and fmriprep to grab motion related QC metrics
- -   Decision with Colin: are we going to work from the GSR XCP-outputs - and take the reHo and alff values
+ - literature: (https://pmc.ncbi.nlm.nih.gov/articles/PMC11245004/#S2) [x]
+ - extraction - all done by XCP-D (which is stage-3.sh of TIGR_BIDS) 
+ -   learn how to understand output to find fALFF outputs [x]
+ -   learn how to concatenate across subjects from the output [x]
+ -   also grab coverage files to incorporate into QC [x]
+ -   understand/do visual qc of XCP and fmriprep to grab motion related QC metrics [x]
+ -   Decision with Colin: are we going to work from the GSR XCP-outputs - and take the reHo and alff values [x] (We decided on XCP_D outputs)
 
 ## Global Corr
- - literture for it (prob from Anticivic lab) - https://elifesciences.org/articles/66968
+ - literture for it (prob from Anticivic lab) - https://elifesciences.org/articles/66968 [x]
  - additonal script ontop for XCP needed to calcualte it
- -  to calculate - grad correlation matrix
+ -  to calculate - grad correlation matrix [x] (calculate_GC function does this)
  -   Total GC = mean of row
  -   Positive GC = mean of all positive values in the row
  -   Absolute GC = mean of absolute values in the row
 
 ## Principle Gradient
- - literature
+ - literature []
     - Margiles paper, https://pmc.ncbi.nlm.nih.gov/articles/PMC5098630/
     - Ju-Chi most recent paper: https://pubmed.ncbi.nlm.nih.gov/39260567/
     - More updated review: https://www.sciencedirect.com/science/article/pii/S1053811922001161?via%3Dihub
- - additional calculation in python (using BrainSpace package) to calulate it - Ju-Chi has scripts
+ - additional calculation in python (using BrainSpace package) to calulate it - Ju-Chi has scripts []
 
  - To get new templates (on a lab computer - done by erin):
  - ``` module load connectome_workbench; wb_command -cifti-parcellate /scratch/edickie/parcellate_gradients/hcp.embed.dscalar.nii /scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/atlases/atlas-Glasser/atlas-Glasser_space-fsLR_den-91k_dseg.dlabel.nii COLUMN /scratch/edickie/parcellate_gradients/atlas-Glasser_space-fsLR_den-91k_desc-Margulies2016_gradients.pscalar.nii"```
@@ -129,9 +134,8 @@ venv2jup
 
    # July goals
 
-    - Compare the NODDI to the rsfMRI metrics using stats
-    - pulling all the metrics into one dataframe?
-    - correlate across the brain within subject
-    - correlate across subject wihtin parcels
-    - make pretty ggseg pictures
-    - 
+    - Compare the NODDI to the rsfMRI metrics using stats [x]
+    - pulling all the metrics into one dataframe?[x]
+    - correlate across the brain within subject [x]
+    - correlate across subject wihtin parcels [x]
+    - make pretty ggseg pictures [x]
