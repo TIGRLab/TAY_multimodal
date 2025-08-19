@@ -1,0 +1,55 @@
+Subjects,Session,QC done by,Pass/Fail,Comments
+sub-CMH00000023,3,AM,PASS,
+sub-CMH00000036,5,AM,PASS,
+sub-CMH00000040,3,AM,PASS,cerebellum and temporal cut off
+sub-CMH00000041,5,AM,PASS,some temporal cut off
+sub-CMH00000053,7,AM,PASS,
+sub-CMH00000061,5,AM,PASS,cerebellum and temporal cut off
+sub-CMH00000063,5,AM,PASS,some temporal lobe loss
+sub-CMH00000103,3,AM,PASS,
+sub-CMH00000105,3,AM,PASS,
+sub-CMH00000108,3,AM,PASS,temporal cut off slightly
+sub-CMH00000120,3,AM,PASS,cerebellum cut off
+sub-CMH00000125,3,AM,FAIL,NODDI map doesn't align with parcellations
+sub-CMH00000137,1,AM,PASS,
+sub-CMH00000146,5,AM,PASS,
+sub-CMH00000148,3,AM,PASS,temporal and cerebellum cut off
+sub-CMH00000159,3,AM,PASS,a bit temporal and cerebellum cut off
+sub-CMH00000179,5,AM,PASS,
+sub-CMH00000186,5,AM,PASS,
+sub-CMH00000198,3,AM,PASS,slight temporal cut off
+sub-CMH00000214,3,AM,PASS,
+sub-CMH00000219,3,AM,PASS,"temporal, cerebellum cut off"
+sub-CMH00000227,3,AM,PASS,slight cerebellum cut off
+sub-CMH00000230,3,AM,PASS,
+sub-CMH00000240,3,AM,PASS,cerebellum cut off
+sub-CMH00000243,1,AM,PASS,
+sub-CMH00000246,3,AM,PASS,
+sub-CMH00000250,5,AM,PASS,
+sub-CMH00000253,3,AM,PASS,cerebellum cut off slight
+sub-CMH00000261,3,AM,PASS,slight cerebellum cut off
+sub-CMH00000268,3,AM,PASS,slight cerebellum cut off
+sub-CMH00000292,3,AM,PASS,slight cerebellum cut off
+sub-CMH00000293,3,AM,PASS,
+sub-CMH00000294,3,AM,PASS,cerebellum cut off
+sub-CMH00000297,3,AM,PASS,cerbellum slight cut off
+sub-CMH00000305,1,AM,PASS,cerbellum cut off
+sub-CMH00000319,1,AM,PASS,
+sub-CMH00000320,1,AM,PASS,cerebellum cut off
+sub-CMH00000333,1,AM,PASS,cerebellum cut off
+sub-CMH00000354,5,AM,PASS,cerebellum cut off
+sub-CMH00000371,5,AM,PASS,
+sub-CMH00000374,1,AM,PASS,cerebellum cut off
+sub-CMH00000376,3,AM,PASS,cerebellum cut off
+sub-CMH00000390,1,AM,PASS,cerebellum cut off
+sub-CMH00000402,1,AM,PASS,cerebellum cut off
+sub-CMH00000437,1,AM,PASS,cerebellum cut off
+sub-CMH00000439,1,AM,PASS,
+sub-CMH00000475,1,AM,PASS,
+sub-CMH00000672,1,AM,PASS,cerebellum cut off
+sub-CMH00000691,1,AM,PASS,
+sub-CMH00000742,1,AM,PASS,cerebellum cut off
+sub-CMH00000773,1,AM,PASS,
+sub-CMH00000805,1,AM,PASS,cerebellum cut off
+sub-CMH00000846,1,AM,PASS,cerebellum cut off
+sub-CMH00000865,1,AM,PASS,cerebellum cut off
