@@ -25,6 +25,8 @@ System:
     library(ggridges)
     library(ggsegGlasser)
     library(ppcor)
+    library(tidyverse)
+    library(dplyr)
 ```
  - RanFrom: Kimel
 
@@ -38,7 +40,7 @@ Commands/Scripts:
   - Functions made:
     ```
     wrangle_data(path, pattern) #concatenates subject files into one dataframe
-    calculate_GC(dataframe, string) #calcualtes postitive, absolute and mean global signal correlation and can be customized for individual or group dataframe based on string input
+    calculate_GC(dataframe, string) #calculates postitive, absolute and mean global signal correlation and can be customized for individual or group dataframe based on string input
     matrix_QC(dataframe, run_num, title_string) #creates a matrix between subject to subject for global signal correlation between atlases
     ```
   - First section (lines 39-220) involves concatenating all age and fMRI metrics. Also includes brainmaps of ten random subjects global signal correlation maps, alonside group brain maps
