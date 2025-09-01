@@ -28,7 +28,9 @@ library(ggplot2)
 library(ggridges)
 #install.packages("ppcor")
 library(ppcor)
+library(dplyr)
 ```
+troubleshooting: select() sometimes doesn't work. If this occurs put dplyr::select()
 
 Function used to read through many subject files and concatenate into a dataframe
 commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
@@ -43,7 +45,7 @@ wrangle_data = function (path,pattern #, output_path
     mutate(task = str_extract(x, pattern = "nback|rest")) %>%
     mutate (session = str_extract(x, pattern = "ses-0\\d")) %>%
     mutate (run = str_extract(x, pattern = "run-0\\d")) %>%
-    select(subject, task, session, run, everything()) 
+    dplyr::select(subject, task, session, run, everything()) #dplyr:: required, otherwise select() issue
   })
   #write_tsv(results_file, output_path)
 }
@@ -82,6 +84,51 @@ motion_xcpd_results = wrangle_data(path_xcpd,"_desc-linc_qc.tsv") %>% subset(sel
 ```
 gscorr
 -------------
+```{r}
+ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv")
+ts_HCP_concatenate = filter(ts_HCP_concatenate, task =="rest")
+```
+```{r}
+ group_corr = ts_HCP_concatenate %>%
+  subset(select = -c(subject, task, session, run)) 
+group_corr = cor(group_corr)                                    
+```
+```{r}
+meta_cols   = c("subject","task","session","run")
+parcel_cols = setdiff(names(ts_HCP_concatenate), meta_cols)
+
+corr_results = ts_HCP_concatenate %>%
+  group_by(across(all_of(meta_cols))) %>%
+  group_map(~ {
+    # correlation matrix
+    parcel_data = as.matrix(dplyr::select(.x, all_of(parcel_cols)))
+    cor_mat = cor(parcel_data, use = "pairwise.complete.obs")
+    
+    
+    # convert to df while keeping parcel names clean. without this, an extra column with parcel names 
+    cor_df = as.data.frame(cor_mat)
+    cor_df = tibble::rownames_to_column(cor_df, var = "parcel")
+
+    # repeat metadata for each row
+    cor_df$subject = unique(.y$subject)
+    cor_df$task = unique(.y$task)
+    cor_df$session = unique(.y$session)
+    cor_df$run  = unique(.y$run)
+    
+    # reorder columns so metadata comes first
+    cor_df = cor_df[, c(meta_cols, "parcel", parcel_cols)]
+    cor_df
+  }) %>%
+  bind_rows()
+```
+```{r}
+mean_corr = corr_results %>%
+  pivot_longer(cols = all_of(parcel_cols), names_to = "parcel2", values_to = "correlation") %>%
+  filter(parcel != parcel2) %>%  # remove diagonal = self-correlation
+  group_by(subject, task, session, run, parcel) %>%
+  summarise(mean_GC = mean(correlation, na.rm = TRUE), .groups = "drop")
+```
+
 function for global corr calculation:
 ```{r}
 calculate_GC = function(dataframe, string){
@@ -276,7 +323,7 @@ ggplot(ts_HCP_QC, aes(x= timepoint, y= Signal, colour=Node, group = Node)) +
 concatenating all results
 -----------------------------
 ```{r}
-#grab all noddi result data, maybe filter also for low coverage?
+#grab all noddi result data, filter also for low coverage
 noddi_Glasser_results = wrangle_data(path_noddi, "Glasser_model-noddi_results.tsv") %>% subset(select = -c(task,run))%>%
    rename(Node = name)%>%
    mutate(Node = str_replace(Node, "L_", "Left_") %>% 
@@ -320,8 +367,6 @@ df_Glasser = merge(df_Glasser, coverage_xcpd_Glasser_results, by= c("subject", "
 df_Glasser = merge(df_Glasser, motion_xcpd_results, by= c("subject", "task", "session", "run")) %>% filter(mean_fd<0.5)
 df_Glasser = merge(df_Glasser, noddi_Glasser_results, by= c("subject","session", "Node"), all=TRUE)
 df_Glasser = merge(df_Glasser, age_df, by= c("subject")) %>% filter(subject!="sub-CMH00000125")
-#df_Glasser= df_Glasser %>% select("subject", "session", "run", "age_at_mri", "task", "Node", everything())
-#does reho values that are NA need to removed, does it affect cor.test? na.omit() gets rid of whole row with NA i think
 ```
 ```{r}
 df_4S156Parcels = merge(alff_xcpd_4S156Parcels_results, reHo_xcpd_4S156Parcels_results, by= c("subject", "task", "session", "run", "Node"))
