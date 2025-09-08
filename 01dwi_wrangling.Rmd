@@ -30,7 +30,10 @@ library(ggridges)
 library(ppcor)
 library(dplyr)
 ```
-troubleshooting: select() sometimes doesn't work. If this occurs put dplyr::select()
+troubleshooting: select() sometimes doesn't work. If this occurs replace with dplyr::select()
+
+To note:
+this code uses three atlases: HCP MMP (Glasser), HCP Subcortical and 4S156 Schaefer. However, 4S156 Schaefer needs a pipeline to fit into ggseg; thereby some snippets of codes are available using Scahefer, but the final analysis codes do not include it. Thus, any chunks referencing 4S156 or Schaefer can be skipped
 
 Function used to read through many subject files and concatenate into a dataframe
 commented out output path option currently, may make an if statement if separate reusable .tsv files are needed later
@@ -51,7 +54,7 @@ wrangle_data = function (path,pattern #, output_path
 }
 ```
 ```{r}
-#change paths to where data is
+#change paths to where data is if necessary
 path_xcpd = "/scratch/amiah/SCanD_project/data/local/derivatives/xcp_d/0.7.3/"
 path_noddi = "/projects/jwong/qsiprep/output/noddi_extract/ciftify_parcellations/"
 
@@ -87,9 +90,11 @@ gscorr
 function for global corr calculation:
 ```{r}
 calculate_GC = function(dataframe, string){
+#grab names of columns
   meta_cols   = c("subject","task","session","run")
   parcel_cols = setdiff(names(dataframe), meta_cols)
 
+#complete correlations of each subject
   corr_results = dataframe %>%
  	  group_by(across(all_of(meta_cols))) %>%
     group_map(~ {
@@ -97,7 +102,7 @@ calculate_GC = function(dataframe, string){
     	parcel_data = as.matrix(dplyr::select(.x, all_of(parcel_cols)))
     	cor_mat = cor(parcel_data, use = "pairwise.complete.obs")
     
-    # convert to df while keeping parcel names clean. without this, an extra column with parcel names is formedv
+    # convert to df while keeping parcel names clean. without this, an extra column with parcel names is formed
       cor_df = as.data.frame(cor_mat)
       cor_df = tibble::rownames_to_column(cor_df, var = "Node")
 
@@ -112,10 +117,11 @@ calculate_GC = function(dataframe, string){
       cor_df
     }) %>%
    bind_rows()
-
+  
+#creates a traditional correlation matrix with a column with node names, and subsequent columns with parcels --> all grouped by meta columns
   long_mat = corr_results %>% pivot_longer(cols = all_of(parcel_cols), names_to = "Node2", values_to = "Value")  %>%
   filter(Node != Node2)   # remove self-correlations
-  
+
   if(string == "individual"){
     group = long_mat %>% group_by(subject, task, session, run, Node)
   } else if (string =="group"){
@@ -124,6 +130,7 @@ calculate_GC = function(dataframe, string){
     print("Please specify group or individual analysis")
   }
 
+  #calculate gscorr metrics based on if you want individual subject level or group parcel level and place in a table
   calculate =  group %>% 
     summarise(
      mean_GC = mean(Value, na.rm=TRUE), 
@@ -132,23 +139,38 @@ calculate_GC = function(dataframe, string){
       )
 }
 ```
-
-HCP GSCorr
 ```{r}
+#wrangle_data of timeseries of each, then filter for resting state data only
 ts_HCP_concatenate = wrangle_data(path_xcpd, "HCP_stat-mean_timeseries.tsv") 
-ts_HCP_concatenate = filter(ts_HCP_concatenate, task =="rest")
-GC_HCP_individual = calculate_GC(ts_HCP_concatenate, "individual") %>% filter(task=="rest")
+ts_HCP_concatenate = filter(ts_HCP_concatenate, task =="rest") 
+ts_Glasser_concatenate = wrangle_data(path_xcpd, "Glasser_stat-mean_timeseries.tsv") 
+ts_Glasser_concatenate = filter(ts_Glasser_concatenate, task =="rest") 
+
+#create one dataframe with both atlases and calculate gscorr, possibly reduced variation of HCP atlas issue
+GC_all = bind_rows(ts_Glasser_concatenate, ts_HCP_concatenate)
+GC_all = calculate_GC (GC_all, "individual")
+
+#just want the node names, can use a different method
+ts_HCP = ts_HCP_concatenate%>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="timeseries")
+ts_Glasser = ts_Glasser_concatenate%>% pivot_longer(cols = -c(subject,task,session,run), names_to = "Node", values_to="timeseries")
+
+#creating different dataframes for each, will be used later to concatenate bigger dataframe of all metrics for each atlas
+GC_HCP_individual = GC_all %>% filter(Node %in% ts_HCP$Node)
+GC_Glasser_individual = GC_all %>% filter(Node %in% ts_Glasser$Node)
 ```
+HCP GSCorr
+-----------
 HCP brainmap for QC
 ```{r}
 #aseg_df=as_tibble(aseg) #for checking label names
-#randomly select ten subjects and make brainmap of it (will need ggseg)
+#randomly select ten subjects and make brainmap of it 
 ten_sub = sample(unique(ts_HCP_concatenate$subject), 10)
-GC_HCP_rand_individual= calculate_GC(ts_HCP_concatenate, "individual") %>% 
+GC_HCP_rand_individual= GC_HCP_individual %>% 
   filter(subject %in% ten_sub) %>%
   filter(run=="run-01") %>% #need to choose a run, or else has two values per subject
   rename(label = Node)
 
+#fixing label names to match aseg
 GC_HCP_rand_individual$label = GC_HCP_rand_individual$label %>% tolower() %>%
   str_replace("^[a-z]", ~str_to_upper(.x)) %>%
   str_replace_all("_[a-z]", ~str_to_upper(.x)) %>%
@@ -198,16 +220,12 @@ GC_4S156Parcels_individual = calculate_GC(ts_4S156Parcels_concatenate, "individu
 need to build a pipeline for schaefer atlas - currently, cannot be mapped using ggseg
 
 Glasser brainmap of mean gscorr
-```{r}
-#need to run this
-ts_Glasser_concatenate = wrangle_data(path_xcpd, "Glasser_stat-mean_timeseries.tsv") 
-ts_Glasser_concatenate = filter(ts_Glasser_concatenate, task =="rest") 
-GC_Glasser_individual = calculate_GC(ts_Glasser_concatenate, "individual") %>% filter(task=="rest")
-```
-
+---------------------------------
 ```{r}
 #randomly select ten subjects and make brainmap of it (will need ggseg)
 ten_sub = sample(unique(ts_Glasser_concatenate$subject), 6) #6 subjects used here because 10 cannot be visualized well
+
+#changing label names to match ggseg glasser atlas
 GC_Glasser_rand_individual= calculate_GC(ts_Glasser_concatenate, "individual") %>% 
   filter(subject %in% ten_sub) %>%
   filter(run=="run-01") %>%
@@ -263,6 +281,8 @@ matrixQC(GC_Glasser_individual, "run-01", "Glasser run-01")
 matrixQC(GC_HCP_individual, "run-01", "HCP run-01")
 #matrixQC(GC_4S156Parcels_individual, "run-01",  "4S156 run-01")
 ```
+#timeseries comparison for QC
+plots timeseries of ten random subjects. looking for any signal dropout in the beginning (none seen)
 ```{r}
 #timepoint comparison for QC
 ten_sub = sample(unique(ts_Glasser_concatenate$subject), 10)
